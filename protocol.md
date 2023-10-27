@@ -17,9 +17,7 @@ distributed application.
   it.
 
 ## The underlying transport protocol
-
-TODO - what transport-layer protocol do you use? TCP? UDP? What port number(s)? Why did you 
-choose this transport layer protocol?
+We opt for the TCP transport-layer protocol due to its reliability. This choice is driven by the protocol's ability to incorporate error-checking mechanisms and facilitate the retransmission of lost packets; which could lead to a suboptimal control of the farming enviornment.
 
 ## The architecture
 
@@ -35,8 +33,7 @@ node type (For example: one subsection for sensor/actuator nodes, one for contro
 
 ## Connection and state
 
-TODO - is your communication protocol connection-oriented or connection-less? Is it stateful or 
-stateless? 
+Our communication protocol is connection-oriented, and stateless. This makes it more scalable and reliable
 
 ## Types, constants
 
