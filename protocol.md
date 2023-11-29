@@ -28,7 +28,8 @@ Do you have one or several servers? Perhaps include a picture here.
 
 **Clients**: Control-panel nodes and sensor/actuator nodes.
 
-| ![Network architecture](Manual/Images/network architecture.png) |
+
+| ![Network architecture](https://github.com/FaalFlew/SMG-smart-farming-system/assets/126261797/2078438a-53ac-428d-88fc-3b27a9640a75) |
 |:--:|
 | *The network architecture* |
 
