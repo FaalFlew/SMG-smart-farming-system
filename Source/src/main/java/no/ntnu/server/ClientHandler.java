@@ -1,3 +1,5 @@
+package no.ntnu.server;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
@@ -6,7 +8,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-
+import java.util.Timer;
+import java.util.TimerTask;
 public class ClientHandler implements Runnable {
 
     private final Socket clientSocket;
@@ -82,4 +85,23 @@ public class ClientHandler implements Runnable {
         writer.println(response.toString());
     }
     // Add more methods for handling different message types
+
+
+    // Example method for simulating periodic sensor data broadcast
+    private void simulatePeriodicSensorDataBroadcast(int nodeId) {
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                // Simulate sensor data
+                JsonObject sensorData = new JsonObject();
+                sensorData.addProperty("type", "SENSOR_DATA");
+                sensorData.addProperty("nodeId", nodeId);
+                sensorData.addProperty("temperature", Math.random() * 30); // Replace with actual sensor readings
+                sensorData.addProperty("humidity", Math.random() * 100); // Replace with actual sensor readings
+
+                writer.println(sensorData.toString());
+            }
+        }, 0, 5000); // Simulate every 5 seconds
+    }
 }
