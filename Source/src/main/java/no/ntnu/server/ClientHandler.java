@@ -62,7 +62,8 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleSensorData(JsonObject jsonMessage) {
-        // Implement sensor data handling logic
+        //TODO: Implement sensor data handling logic
+
         // Extract necessary information from the JSON message
         int nodeId = jsonMessage.get("nodeId").getAsInt();
 
@@ -73,7 +74,8 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleActuatorControl(JsonObject jsonMessage) {
-        // Implement actuator control logic
+        // TODO: Implement actuator control logic
+
         //Extract necessary information from the JSON message
         int nodeId = jsonMessage.get("nodeId").getAsInt();
         int actuatorId = jsonMessage.get("actuatorId").getAsInt();
