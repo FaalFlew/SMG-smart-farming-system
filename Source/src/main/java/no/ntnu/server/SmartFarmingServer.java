@@ -43,7 +43,7 @@ public class SmartFarmingServer {
             while ((clientMessage = reader.readLine()) != null) {
                 Logger.info("Received message from client: " + clientMessage);
 
-                //Parses JSON message
+                // Parse JSON message
                 try {
                     Message message = gson.fromJson(clientMessage, Message.class);
                     handleMessage(message, writer);
@@ -51,11 +51,11 @@ public class SmartFarmingServer {
                     Logger.error("Error parsing message: " + e.getMessage());
                 }
             }
-
         } catch (IOException e) {
             Logger.error("Error handling client: " + e.getMessage());
         } finally {
             try {
+                Logger.info("Client disconnected: " + clientSocket.getInetAddress().getHostName() + " [" + clientSocket.getPort() + "]");
                 clientSocket.close();
             } catch (IOException e) {
                 Logger.error("Error closing client socket: " + e.getMessage());
