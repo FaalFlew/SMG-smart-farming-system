@@ -99,11 +99,11 @@ public class ClientHandler implements Runnable {
                 JsonObject sensorData = new JsonObject();
                 sensorData.addProperty("type", "SENSOR_DATA");
                 sensorData.addProperty("nodeId", nodeId);
-                sensorData.addProperty("temperature", Math.random() * 30); // Replace with actual sensor readings
-                sensorData.addProperty("humidity", Math.random() * 100); // Replace with actual sensor readings
+                sensorData.addProperty("temperature", Math.random() * 30);
+                sensorData.addProperty("humidity", Math.random() * 100);
 
                 writer.println(sensorData.toString());
             }
-        }, 0, 5000); // Simulate every 5 seconds
+        }, 0, 5000);
     }
 }
