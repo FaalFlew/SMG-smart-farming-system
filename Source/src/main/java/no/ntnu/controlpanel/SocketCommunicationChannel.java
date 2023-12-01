@@ -33,24 +33,58 @@ public class SocketCommunicationChannel implements CommunicationChannel {
     }
 
     public boolean open() {
-        Socket socket = null;
+        Socket socket = createSocket();
 
+        if (socket != null) {
+            boolean initialized = initializeWriter(socket);
+            if (initialized) {
+                writer.close();
+                sleepMilliseconds(3000);
+                return true;
+            } else {
+                closeSocket(socket);
+            }
+        }
+        return false;
+    }
+
+    private Socket createSocket() {
         try {
-            socket = new Socket(serverAddress, serverPort);
+            return new Socket(serverAddress, serverPort);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private boolean initializeWriter(Socket socket) {
+        try {
             writer = new PrintWriter(socket.getOutputStream(), true);
             return true;
         } catch (IOException e) {
             e.printStackTrace();
             return false;
-        } finally {
-            // Close the socket if it was opened
-            if (socket != null && !socket.isClosed()) {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+        }
+    }
+
+    private void closeSocket(Socket socket) {
+        if (socket != null && !socket.isClosed()) {
+            try {
+                if (writer != null) {
+                    writer.close();
                 }
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+        }
+    }
+
+    private static void sleepMilliseconds(int delayInMilliseconds) {
+        try {
+            Thread.sleep(delayInMilliseconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }
