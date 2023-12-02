@@ -38,16 +38,23 @@ public class SocketCommunicationChannel implements CommunicationChannel {
         if (socket != null) {
             boolean initialized = initializeWriter(socket);
             if (initialized) {
-                writer.close();
-                sleepMilliseconds(3000);
-                return true;
+                // Keep the application running in a loop
+                while (true) {
+                    // You can add your logic or wait for user input here
+                    // For example, waiting for the user to press a key
+                    System.out.println("Press any key to exit.");
+                    try {
+                        System.in.read();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             } else {
                 closeSocket(socket);
             }
         }
         return false;
     }
-
     private Socket createSocket() {
         try {
             return new Socket(serverAddress, serverPort);
