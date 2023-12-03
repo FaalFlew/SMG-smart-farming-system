@@ -12,6 +12,10 @@ public class Logger {
   private Logger() {
   }
 
+  public static void warning(String message) {
+    System.out.println("[WARNING] " + message);
+  }
+
   /**
    * Log an information message.
    *

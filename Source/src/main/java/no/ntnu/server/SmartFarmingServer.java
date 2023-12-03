@@ -1,7 +1,7 @@
 package no.ntnu.server;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import no.ntnu.greenhouse.SensorReading;
+import no.ntnu.server.message.MessageHandler;
 import no.ntnu.tools.Logger;
 
 import java.io.*;
@@ -11,12 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import no.ntnu.greenhouse.Actuator;
 
 public class SmartFarmingServer {
 
     private static final int PORT = 6019;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
-    private static final Gson gson = new Gson();
     private static final List<PrintWriter> connectedClients = new ArrayList<>();
 
     public static void main(String[] args) {
@@ -51,40 +51,31 @@ public class SmartFarmingServer {
         }
     }
 
-
     private static void sendWarningToAllClients() {
         for (PrintWriter clientWriter : connectedClients) {
             try {
                 // Create a warning message
-                JsonObject warningMessage = new JsonObject();
-                warningMessage.addProperty("type", "WARNING");
-                warningMessage.addProperty("message", "Server will close soon!");
+                String warningMessage = MessageHandler.createWarningMessage("Server will close soon!");
 
                 // Send the warning message to the client
-                clientWriter.println(warningMessage.toString());
+                clientWriter.println(warningMessage);
             } catch (Exception e) {
                 Logger.error("Error sending warning to client: " + e.getMessage());
             }
         }
     }
-    private static void handleClient(Socket clientSocket,PrintWriter clientWriter) {
+
+    private static void handleClient(Socket clientSocket, PrintWriter clientWriter) {
         try (
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true)
         ) {
             Logger.info("Handling client in thread " + Thread.currentThread().getId());
 
             String clientMessage;
             while ((clientMessage = reader.readLine()) != null) {
                 Logger.info("Received message from client: " + clientMessage);
-
-                // Parse JSON message
-                try {
-                    Message message = gson.fromJson(clientMessage, Message.class);
-                    handleMessage(message, writer);
-                } catch (Exception e) {
-                    Logger.error("Error parsing message: " + e.getMessage());
-                }
+                // Handle the message
+                handleMessage(clientMessage, clientWriter);
             }
         } catch (IOException e) {
             Logger.error("Error handling client: " + e.getMessage());
@@ -100,20 +91,60 @@ public class SmartFarmingServer {
         }
     }
 
-    private static void handleMessage(Message message, PrintWriter writer) {
-        // TODO: Implement message handling based on the message type
-        // This is to integrate the specific smart farming protocol logic
+    private static void handleMessage(String clientMessage, PrintWriter writer) {
+        // Parse JSON message and delegate to MessageHandler
+        try {
+            String messageType = MessageHandler.getMessageType(clientMessage);
+            switch (messageType) {
+                case "SENSOR_DATA":
+                    handleSensorData(clientMessage, writer);
+                    break;
+                case "ACTUATOR_CONTROL":
+                    handleActuatorControl(clientMessage, writer);
+                    break;
+                case "WARNING":
+                    handleWarning(clientMessage, writer);
+                    break;
+                // Add more cases for other message types
 
-        // For now, just log the received message type
-        Logger.info("Received message type: " + message.getType());
+                default:
+                    Logger.error("Unknown message type: " + messageType);
+            }
+        } catch (Exception e) {
+            Logger.error("Error handling message: " + e.getMessage());
+        }
     }
 
-    // Message class for demonstration purposes
-    private static class Message {
-        private String type;
+    private static void handleSensorData(String clientMessage, PrintWriter writer) {
+        // Parse JSON message and perform specific handling
+        List<SensorReading> sensorDataList = MessageHandler.parseSensorDataMessage(clientMessage);
 
-        public String getType() {
-            return type;
-        }
+        // TODO: Implement sensor data handling logic
+
+        // Respond to the client if needed
+        // Example: Acknowledge receipt with a success message
+        String response = MessageHandler.createSuccessResponse("SENSOR_DATA");
+        writer.println(response);
+    }
+
+    private static void handleActuatorControl(String clientMessage, PrintWriter writer) {
+        // Parse JSON message and perform specific handling
+        List<Actuator> actuatorStatusList = MessageHandler.parseActuatorStatusMessage(clientMessage);
+
+        // TODO: Implement actuator control logic
+
+        // Respond to the client if needed
+        // Example: Acknowledge receipt with a success message
+        String response = MessageHandler.createSuccessResponse("ACTUATOR_CONTROL");
+        writer.println(response);
+    }
+
+    private static void handleWarning(String clientMessage, PrintWriter writer) {
+        // Handle the warning message
+        Logger.warning("Received warning from client: " + clientMessage);
+
+        // Acknowledge receipt with a success message
+        String response = MessageHandler.createSuccessResponse("WARNING");
+        writer.println(response);
     }
 }

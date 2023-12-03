@@ -1,5 +1,7 @@
 package no.ntnu.controlpanel;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -24,9 +26,16 @@ public class SocketCommunicationChannel implements CommunicationChannel {
      */
     @Override
     public void sendActuatorChange(int nodeId, int actuatorId, boolean isOn) {
-        // TODO: change to JSON format
-        String message = String.format("{\"type\":\"ACTUATOR_CONTROL\",\"nodeId\":%d,\"actuatorId\":%d,\"isOn\":%b}",
-                nodeId, actuatorId, isOn);
+        JsonObject jsonMessage = new JsonObject();
+        jsonMessage.addProperty("type", "ACTUATOR_CONTROL");
+        jsonMessage.addProperty("nodeId", nodeId);
+        jsonMessage.addProperty("actuatorId", actuatorId);
+        jsonMessage.addProperty("isOn", isOn);
+
+
+        //String message = String.format("{\"type\":\"ACTUATOR_CONTROL\",\"nodeId\":%d,\"actuatorId\":%d,\"isOn\":%b}",
+        // nodeId, actuatorId, isOn);
+        String message = jsonMessage.toString();
         if (writer != null) {
             writer.println(message);
         }

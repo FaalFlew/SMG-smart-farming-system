@@ -57,7 +57,27 @@ public class MessageHandler {
 
         return message.toString();
     }
+    public static String createWarningMessage(String message) {
+        // Placeholder method for creating a warning message
+        JsonObject warningMessage = new JsonObject();
+        warningMessage.addProperty("type", "WARNING");
+        warningMessage.addProperty("message", message);
+        return warningMessage.toString();
+    }
 
+    public static String getMessageType(String message) {
+        // Placeholder method for getting the message type
+        JsonObject jsonMessage = gson.fromJson(message, JsonObject.class);
+        return jsonMessage.has("type") ? jsonMessage.get("type").getAsString() : null;
+    }
+
+    public static String createSuccessResponse(String message) {
+        // Placeholder method for creating a success response
+        JsonObject successResponse = new JsonObject();
+        successResponse.addProperty("type", "SUCCESS");
+        successResponse.addProperty("message", message);
+        return successResponse.toString();
+    }
     public static List<SensorReading> parseSensorDataMessage(String message) {
         JsonObject jsonMessage = gson.fromJson(message, JsonObject.class);
         return gson.fromJson(jsonMessage.getAsJsonArray("sensorData"), List.class);
