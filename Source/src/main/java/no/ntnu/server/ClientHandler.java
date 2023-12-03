@@ -1,3 +1,4 @@
+// ClientHandler.java
 package no.ntnu.server;
 
 import com.google.gson.Gson;
@@ -10,6 +11,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Timer;
 import java.util.TimerTask;
+
 public class ClientHandler implements Runnable {
 
     private final Socket clientSocket;
@@ -17,39 +19,18 @@ public class ClientHandler implements Runnable {
     private final PrintWriter writer;
     private final Gson gson;
 
-    public ClientHandler(Socket clientSocket) throws IOException {
+    public ClientHandler(Socket clientSocket, PrintWriter writer) throws IOException {
         this.clientSocket = clientSocket;
         this.reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        this.writer = new PrintWriter(clientSocket.getOutputStream(), true);
+        this.writer = writer;
         this.gson = new Gson();
     }
 
     @Override
     public void run() {
         try {
-            String clientMessage;
-            while ((clientMessage = reader.readLine()) != null) {
-                System.out.println("Received message from client: " + clientMessage);
-
-                // Parse JSON message
-                JsonObject jsonMessage = gson.fromJson(clientMessage, JsonObject.class);
-
-                // Handle the message based on its type
-                String messageType = jsonMessage.get("type").getAsString();
-                switch (messageType) {
-                    case "SENSOR_DATA":
-                        handleSensorData(jsonMessage);
-                        break;
-                    case "ACTUATOR_CONTROL":
-                        handleActuatorControl(jsonMessage);
-                        break;
-                    // Add more cases for other message types
-
-                    default:
-                        System.out.println("Unknown message type: " + messageType);
-                }
-            }
-
+            // Handle the client-specific logic, including periodic sensor data broadcast
+            handleClient();
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -57,6 +38,31 @@ public class ClientHandler implements Runnable {
                 clientSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    private void handleClient() throws IOException {
+        String clientMessage;
+        while ((clientMessage = reader.readLine()) != null) {
+            System.out.println("Received message from client: " + clientMessage);
+
+            // Parse JSON message
+            JsonObject jsonMessage = gson.fromJson(clientMessage, JsonObject.class);
+
+            // Handle the message based on its type
+            String messageType = jsonMessage.get("type").getAsString();
+            switch (messageType) {
+                case "SENSOR_DATA":
+                    handleSensorData(jsonMessage);
+                    break;
+                case "ACTUATOR_CONTROL":
+                    handleActuatorControl(jsonMessage);
+                    break;
+                // Add more cases for other message types
+
+                default:
+                    System.out.println("Unknown message type: " + messageType);
             }
         }
     }
@@ -86,8 +92,8 @@ public class ClientHandler implements Runnable {
         response.addProperty("status", "success");
         writer.println(response.toString());
     }
-    // Add more methods for handling different message types
 
+    // Add more methods for handling different message types
 
     // Example method for simulating periodic sensor data broadcast
     private void simulatePeriodicSensorDataBroadcast(int nodeId) {

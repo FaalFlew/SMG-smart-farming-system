@@ -1,17 +1,17 @@
+// SmartFarmingServer.java
 package no.ntnu.server;
 
-import no.ntnu.greenhouse.SensorReading;
 import no.ntnu.server.message.MessageHandler;
 import no.ntnu.tools.Logger;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import no.ntnu.greenhouse.Actuator;
 
 public class SmartFarmingServer {
 
@@ -37,7 +37,8 @@ public class SmartFarmingServer {
                 PrintWriter clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
                 connectedClients.add(clientWriter);
 
-                executorService.execute(() -> handleClient(clientSocket, clientWriter));
+                // Create a new instance of ClientHandler for each client
+                executorService.execute(new ClientHandler(clientSocket, clientWriter));
             }
 
         } catch (IOException e) {
@@ -63,88 +64,5 @@ public class SmartFarmingServer {
                 Logger.error("Error sending warning to client: " + e.getMessage());
             }
         }
-    }
-
-    private static void handleClient(Socket clientSocket, PrintWriter clientWriter) {
-        try (
-                BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        ) {
-            Logger.info("Handling client in thread " + Thread.currentThread().getId());
-
-            String clientMessage;
-            while ((clientMessage = reader.readLine()) != null) {
-                Logger.info("Received message from client: " + clientMessage);
-                // Handle the message
-                handleMessage(clientMessage, clientWriter);
-            }
-        } catch (IOException e) {
-            Logger.error("Error handling client: " + e.getMessage());
-        } finally {
-            try {
-                Logger.info("Client disconnected: " + clientSocket.getInetAddress().getHostName() + " [" + clientSocket.getPort() + "]");
-                clientSocket.close();
-                // Remove the client's PrintWriter from the list when disconnected
-                connectedClients.removeIf(writer -> writer.equals(clientWriter));
-            } catch (IOException e) {
-                Logger.error("Error closing client socket: " + e.getMessage());
-            }
-        }
-    }
-
-    private static void handleMessage(String clientMessage, PrintWriter writer) {
-        // Parse JSON message and delegate to MessageHandler
-        try {
-            String messageType = MessageHandler.getMessageType(clientMessage);
-            switch (messageType) {
-                case "SENSOR_DATA":
-                    handleSensorData(clientMessage, writer);
-                    break;
-                case "ACTUATOR_CONTROL":
-                    handleActuatorControl(clientMessage, writer);
-                    break;
-                case "WARNING":
-                    handleWarning(clientMessage, writer);
-                    break;
-                // Add more cases for other message types
-
-                default:
-                    Logger.error("Unknown message type: " + messageType);
-            }
-        } catch (Exception e) {
-            Logger.error("Error handling message: " + e.getMessage());
-        }
-    }
-
-    private static void handleSensorData(String clientMessage, PrintWriter writer) {
-        // Parse JSON message and perform specific handling
-        List<SensorReading> sensorDataList = MessageHandler.parseSensorDataMessage(clientMessage);
-
-        // TODO: Implement sensor data handling logic
-
-        // Respond to the client if needed
-        // Example: Acknowledge receipt with a success message
-        String response = MessageHandler.createSuccessResponse("SENSOR_DATA");
-        writer.println(response);
-    }
-
-    private static void handleActuatorControl(String clientMessage, PrintWriter writer) {
-        // Parse JSON message and perform specific handling
-        List<Actuator> actuatorStatusList = MessageHandler.parseActuatorStatusMessage(clientMessage);
-
-        // TODO: Implement actuator control logic
-
-        // Respond to the client if needed
-        // Example: Acknowledge receipt with a success message
-        String response = MessageHandler.createSuccessResponse("ACTUATOR_CONTROL");
-        writer.println(response);
-    }
-
-    private static void handleWarning(String clientMessage, PrintWriter writer) {
-        // Handle the warning message
-        Logger.warning("Received warning from client: " + clientMessage);
-
-        // Acknowledge receipt with a success message
-        String response = MessageHandler.createSuccessResponse("WARNING");
-        writer.println(response);
     }
 }
