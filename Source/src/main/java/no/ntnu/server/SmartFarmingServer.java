@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 
 public class SmartFarmingServer {
 
-    private static final int PORT = 6019;
+    public static final int PORT = 6019;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
     private static final List<PrintWriter> connectedClients = new ArrayList<>();
 

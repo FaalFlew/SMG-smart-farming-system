@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -43,13 +44,21 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleClient() throws IOException {
-        String clientMessage;
-        while ((clientMessage = reader.readLine()) != null) {
-            System.out.println("Received message from client: " + clientMessage);
 
-            // Use MessageHandler to handle the message
-            handleMessage(clientMessage);
+
+    private void handleClient()  throws IOException {
+        String clientMessage;
+        try {
+            while ((clientMessage = reader.readLine()) != null) {
+                Logger.info("Received message from client: " + clientMessage);
+
+                handleMessage(clientMessage);
+            }
+        } catch (SocketException e) {
+            //TODO: provide client type and unique id to indicate which client disconnected
+            Logger.info("Client disconnected");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -58,15 +67,11 @@ public class ClientHandler implements Runnable {
             String messageType = MessageHandler.getMessageType(clientMessage);
 
             switch (messageType) {
-                case "SENSOR_PUSH_SENSOR_DATA":
+                case "SENSOR_DATA":
                     // these "tdoo" methods may be done in the client class and the feedback or result of the call should be returned to server to furthar forward to contorl panel.
                     // TODO: method to check if node ID of the controlpanel we are sending data to exists.
 
                     handleSensorData(clientMessage);
-                    break;
-                case "CONTROL_REQUEST_SENSOR_DATA":
-                    // TODO: method to check if node ID and ID of the sensor we are requesting data from exists.
-                    handleActuatorControl(clientMessage);
                     break;
                 case "ACTUATOR_CONTROL":
                     // these "tdoo" methods may be done in the client class and the feedback or result of the call should be
@@ -79,7 +84,7 @@ public class ClientHandler implements Runnable {
                 // Add more cases for other message types
 
                 default:
-                    System.out.println("Unknown message type: " + messageType);
+                    Logger.error("Unknown message type: " + messageType);
             }
         } catch (Exception e) {
             Logger.error("Error handling message type: " + e.getMessage());

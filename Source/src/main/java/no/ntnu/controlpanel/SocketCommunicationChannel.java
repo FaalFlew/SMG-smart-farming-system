@@ -1,7 +1,7 @@
 package no.ntnu.controlpanel;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import no.ntnu.tools.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -65,11 +65,11 @@ public class SocketCommunicationChannel implements CommunicationChannel {
 
         try {
             while (true) {
-                System.out.print("Enter a message to send to the server (or 'exit' to quit): ");
+                Logger.info("Enter a message to send to the server (or 'exit' to quit): ");
                 String userInput = reader.readLine();
 
                 if ("exit".equalsIgnoreCase(userInput)) {
-                    break; // Exit the loop if the user enters 'exit'
+                    break;
                 }
 
                 // Send the user-entered message to the server
@@ -115,14 +115,6 @@ public class SocketCommunicationChannel implements CommunicationChannel {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-    }
-
-    private static void sleepMilliseconds(int delayInMilliseconds) {
-        try {
-            Thread.sleep(delayInMilliseconds);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 }

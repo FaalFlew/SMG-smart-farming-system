@@ -23,10 +23,13 @@ public class MainControlPanelClass {
 
 package no.ntnu.controlpanel;
 
+import no.ntnu.tools.Logger;
+
+import static no.ntnu.server.SmartFarmingServer.PORT;
 public class MainControlPanelClass {
     public static void main(String[] args) {
         // Create an instance of the SocketCommunicationChannel
-        CommunicationChannel communicationChannel = new SocketCommunicationChannel("localhost", 6019);
+        CommunicationChannel communicationChannel = new SocketCommunicationChannel("localhost", PORT);
 
         // Open the communication channel
         if (communicationChannel.open()) {
@@ -38,7 +41,7 @@ public class MainControlPanelClass {
             // Send a control command to the server
             communicationChannel.sendActuatorChange(nodeId, actuatorId, isOn);
         } else {
-            System.out.println("Failed to open communication channel. Exiting...");
+            Logger.error("Failed to open communication channel. Exiting...");
         }
     }
 }
