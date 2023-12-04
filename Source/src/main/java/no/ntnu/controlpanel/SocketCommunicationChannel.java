@@ -2,7 +2,10 @@ package no.ntnu.controlpanel;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
@@ -47,23 +50,42 @@ public class SocketCommunicationChannel implements CommunicationChannel {
         if (socket != null) {
             boolean initialized = initializeWriter(socket);
             if (initialized) {
-                // Keep the application running in a loop
-                while (true) {
-                    // You can add your logic or wait for user input here
-                    // For example, waiting for the user to press a key
-                    System.out.println("Press any key to exit.");
-                    try {
-                        System.in.read();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+                // Start a separate thread for continuous message sending
+                new Thread(this::readAndSendMessages).start();
+                return true;
             } else {
                 closeSocket(socket);
             }
         }
         return false;
     }
+
+    private void readAndSendMessages() {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+        try {
+            while (true) {
+                System.out.print("Enter a message to send to the server (or 'exit' to quit): ");
+                String userInput = reader.readLine();
+
+                if ("exit".equalsIgnoreCase(userInput)) {
+                    break; // Exit the loop if the user enters 'exit'
+                }
+
+                // Send the user-entered message to the server
+                sendMessage(userInput);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendMessage(String message) {
+        if (writer != null) {
+            writer.println(message);
+        }
+    }
+
     private Socket createSocket() {
         try {
             return new Socket(serverAddress, serverPort);

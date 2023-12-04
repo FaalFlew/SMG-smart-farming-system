@@ -3,9 +3,11 @@ package no.ntnu.server.message;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import no.ntnu.greenhouse.Actuator;
 import no.ntnu.greenhouse.SensorReading;
 import no.ntnu.controlpanel.ControlPanelLogic;
+import no.ntnu.tools.Logger;
 
 import java.util.List;
 
@@ -66,10 +68,29 @@ public class MessageHandler {
     }
 
     public static String getMessageType(String message) {
-        // Placeholder method for getting the message type
-        JsonObject jsonMessage = gson.fromJson(message, JsonObject.class);
-        return jsonMessage.has("type") ? jsonMessage.get("type").getAsString() : null;
+        try {
+            if (message == null) {
+                Logger.error("Input message is null.");
+            }
+
+            JsonObject jsonMessage = gson.fromJson(message, JsonObject.class);
+
+            if (jsonMessage == null) {
+                Logger.error("Invalid JSON format. Unable to parse the message.");
+            }
+
+            if (!jsonMessage.has("type")) {
+                Logger.error( "Message does not contain a 'type' attribute");
+            }
+
+            return jsonMessage.get("type").getAsString();
+        } catch (JsonSyntaxException e) {
+            String errorMessage = "Error parsing JSON: " + e.getMessage();
+            Logger.error(errorMessage);
+            throw new IllegalArgumentException(errorMessage);
+        }
     }
+
 
     public static String createSuccessResponse(String message) {
         // Placeholder method for creating a success response
