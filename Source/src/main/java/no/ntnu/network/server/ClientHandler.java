@@ -1,7 +1,7 @@
-package no.ntnu.server;
+package no.ntnu.network.server;
 
 import com.google.gson.JsonObject;
-import no.ntnu.server.message.MessageHandler;
+import no.ntnu.message.MessageHandler;
 import no.ntnu.greenhouse.Actuator;
 import no.ntnu.greenhouse.SensorReading;
 import no.ntnu.tools.Logger;

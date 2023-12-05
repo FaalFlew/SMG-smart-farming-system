@@ -21,11 +21,13 @@ public class MainControlPanelClass {
 }
 */
 
-package no.ntnu.controlpanel;
+package no.ntnu.network.client;
 
+import no.ntnu.controlpanel.CommunicationChannel;
 import no.ntnu.tools.Logger;
 
-import static no.ntnu.server.SmartFarmingServer.PORT;
+
+import static no.ntnu.network.server.SmartFarmingServer.PORT;
 /**
  * The MainControlPanelClass serves as the entry point for the Control Panel application
  * It demonstrates the usage of the SocketCommunicationChannel and sends a sample actuator control command

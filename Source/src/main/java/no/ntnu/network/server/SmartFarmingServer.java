@@ -1,7 +1,6 @@
-// SmartFarmingServer.java
-package no.ntnu.server;
+package no.ntnu.network.server;
 
-import no.ntnu.server.message.MessageHandler;
+import no.ntnu.message.MessageHandler;
 import no.ntnu.tools.Logger;
 
 import java.io.BufferedReader;

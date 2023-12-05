@@ -1,6 +1,7 @@
-package no.ntnu.controlpanel;
+package no.ntnu.network.client;
 
 import com.google.gson.JsonObject;
+import no.ntnu.controlpanel.CommunicationChannel;
 import no.ntnu.tools.Logger;
 
 import java.io.BufferedReader;
@@ -67,6 +68,10 @@ public class SocketCommunicationChannel implements CommunicationChannel {
             if (initialized) {
                 // Start a separate thread for continuous message sending
                 new Thread(this::readAndSendMessages).start();
+
+                // Start a separate thread for listening to server messages
+                new Thread(new ClientListener(socket)).start();
+
                 return true;
             } else {
                 closeSocket(socket);
