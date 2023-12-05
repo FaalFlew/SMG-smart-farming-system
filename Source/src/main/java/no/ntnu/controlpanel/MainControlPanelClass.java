@@ -26,7 +26,17 @@ package no.ntnu.controlpanel;
 import no.ntnu.tools.Logger;
 
 import static no.ntnu.server.SmartFarmingServer.PORT;
+/**
+ * The MainControlPanelClass serves as the entry point for the Control Panel application
+ * It demonstrates the usage of the SocketCommunicationChannel and sends a sample actuator control command
+ */
 public class MainControlPanelClass {
+
+    /**
+     * The main method that gets executed when running the Control Panel application.
+     *
+     * @param args The command-line arguments (not used in this implementation).
+     */
     public static void main(String[] args) {
         // Create an instance of the SocketCommunicationChannel
         CommunicationChannel communicationChannel = new SocketCommunicationChannel("localhost", PORT);

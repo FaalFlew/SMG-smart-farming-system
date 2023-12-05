@@ -15,12 +15,22 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * The SmartFarmingServer class represents the main server for Smart Farming communication
+ * It accepts incoming client connections, identifies their type, and delegates handling to separate threads using a thread pool
+ */
 public class SmartFarmingServer {
 
     public static final int PORT = 6019;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
     private static final List<PrintWriter> connectedClients = new ArrayList<>();
 
+    /**
+     * The main entry point for starting the Smart Farming Server
+     * It initializes the server socket, listens for incoming connections, and delegates handling to ClientHandler threads
+     *
+     * @param args Command-line arguments (not used in this implementation)
+     */
     public static void main(String[] args) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // Perform cleanup tasks, including sending the warning message
@@ -58,10 +68,20 @@ public class SmartFarmingServer {
         }
     }
 
+    /**
+     * Reads and returns the client type from the provided BufferedReader
+     *
+     * @param reader The BufferedReader connected to the client's input stream
+     * @return The client type as a String
+     * @throws IOException If an I/O error occurs while reading the client type
+     */
     private static String getClientType(BufferedReader reader) throws IOException {
         return reader.readLine();
     }
 
+    /**
+     * Sends a warning message to all connected clients before shutting down the server
+     */
     private static void sendWarningToAllClients() {
         for (PrintWriter clientWriter : connectedClients) {
             try {

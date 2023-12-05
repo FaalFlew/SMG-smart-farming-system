@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * The ClientHandler class handles communication with a client connected to the server
+ * It implements the Runnable interface to be used in a separate thread for concurrent handling of multiple clients.
+ */
 public class ClientHandler implements Runnable {
 
     private final Socket clientSocket;
@@ -23,6 +27,14 @@ public class ClientHandler implements Runnable {
     private final PrintWriter writer;
     private final String clientType;
 
+    /**
+     * Constructs a new ClientHandler instance
+     *
+     * @param clientSocket The socket associated with the client
+     * @param writer       The PrintWriter used for sending messages to the client
+     * @param clientType   The type of the client (e.g., SENSOR, ACTUATOR).
+     * @throws IOException If an I/O error occurs while setting up the input and output streams
+     */
     public ClientHandler(Socket clientSocket, PrintWriter writer, String clientType) throws IOException {
         this.clientSocket = clientSocket;
         this.reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -30,6 +42,10 @@ public class ClientHandler implements Runnable {
         this.clientType = clientType;
     }
 
+    /**
+     * Runs the client handling logic in a separate thread
+     * Handles the client-specific logic, including periodic sensor data broadcast.
+     */
     @Override
     public void run() {
         try {
@@ -46,8 +62,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
-
-
+    /**
+     * Handles the communication with the client, including message reception and processing
+     *
+     * @throws IOException If an I/O error occurs during communication with the client.
+     */
     private void handleClient()  throws IOException {
         String clientMessage;
         try {
@@ -63,6 +82,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles a received message from the client, determining its type and invoking the corresponding handler
+     *
+     * @param clientMessage The message received from the client
+     */
     private void handleMessage(String clientMessage) {
         try {
             String messageType = MessageHandler.getMessageType(clientMessage);
@@ -92,6 +116,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles sensor data received from the client, parsing and processing the data
+     *
+     * @param clientMessage The sensor data message received from the client
+     */
     private void handleSensorData(String clientMessage) {
         List<SensorReading> sensorDataList = MessageHandler.parseSensorDataMessage(clientMessage);
 
@@ -102,6 +131,11 @@ public class ClientHandler implements Runnable {
         writer.println(response);
     }
 
+    /**
+     * Handles actuator control command received from the client, parsing and processing the command
+     *
+     * @param clientMessage The actuator control command message received from the client
+     */
     private void handleActuatorControl(String clientMessage) {
         List<Actuator> actuatorStatusList = MessageHandler.parseActuatorStatusMessage(clientMessage);
 
@@ -112,9 +146,14 @@ public class ClientHandler implements Runnable {
         writer.println(response);
     }
 
-    // Add more methods for handling different message types
+    //to be done Add more methods for handling different message types
 
     // Example method for simulating periodic sensor data broadcast
+    /**
+     * Simulates periodic sensor data broadcast to the client
+     *
+     * @param nodeId The ID of the node for which to simulate sensor data broadcast
+     */
     private void simulatePeriodicSensorDataBroadcast(int nodeId) {
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
