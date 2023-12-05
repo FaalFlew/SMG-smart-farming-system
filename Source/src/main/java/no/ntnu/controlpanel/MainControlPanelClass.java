@@ -30,16 +30,12 @@ public class MainControlPanelClass {
     public static void main(String[] args) {
         // Create an instance of the SocketCommunicationChannel
         CommunicationChannel communicationChannel = new SocketCommunicationChannel("localhost", PORT);
-
-        // Open the communication channel
-        if (communicationChannel.open()) {
-            // Assuming you have an actuator ID, node ID, and a boolean value for isOn
-            int actuatorId = 1; // Replace with the actual actuator ID
-            int nodeId = 2; // Replace with the actual node ID
-            boolean isOn = true; // Replace with the desired value
-
-            // Send a control command to the server
+        if (communicationChannel.open("CONTROL_PANEL")) {
+            int actuatorId = 1;
+            int nodeId = 2;
+            boolean isOn = true;
             communicationChannel.sendActuatorChange(nodeId, actuatorId, isOn);
+
         } else {
             Logger.error("Failed to open communication channel. Exiting...");
         }

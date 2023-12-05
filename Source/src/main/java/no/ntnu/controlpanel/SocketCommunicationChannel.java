@@ -11,9 +11,9 @@ import java.net.Socket;
 
 public class SocketCommunicationChannel implements CommunicationChannel {
     private final String serverAddress;
-
     private final int serverPort;
     private PrintWriter writer;
+    private String clientType;
 
     public SocketCommunicationChannel(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
@@ -35,16 +35,21 @@ public class SocketCommunicationChannel implements CommunicationChannel {
         jsonMessage.addProperty("actuatorId", actuatorId);
         jsonMessage.addProperty("isOn", isOn);
 
-
-        //String message = String.format("{\"type\":\"ACTUATOR_CONTROL\",\"nodeId\":%d,\"actuatorId\":%d,\"isOn\":%b}",
-        // nodeId, actuatorId, isOn);
         String message = jsonMessage.toString();
         if (writer != null) {
             writer.println(message);
         }
     }
 
-    public boolean open() {
+    /**
+     * Open the communication channel with the client type.
+     *
+     * @param clientType The type of the client (e.g., "CONTROL_PANEL" or "SENSOR_ACTUATOR").
+     * @return true if the communication channel is successfully opened, false otherwise.
+     */
+    @Override
+    public boolean open(String clientType) {
+        this.clientType = clientType;
         Socket socket = createSocket();
 
         if (socket != null) {
@@ -98,6 +103,8 @@ public class SocketCommunicationChannel implements CommunicationChannel {
     private boolean initializeWriter(Socket socket) {
         try {
             writer = new PrintWriter(socket.getOutputStream(), true);
+            // Send the client type during the handshake
+            writer.println(clientType);
             return true;
         } catch (IOException e) {
             e.printStackTrace();

@@ -4,7 +4,9 @@ package no.ntnu.server;
 import no.ntnu.server.message.MessageHandler;
 import no.ntnu.tools.Logger;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -37,8 +39,12 @@ public class SmartFarmingServer {
                 PrintWriter clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
                 connectedClients.add(clientWriter);
 
-                // Create a new instance of ClientHandler for each client
-                executorService.execute(new ClientHandler(clientSocket, clientWriter));
+                // Identify client type
+                BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                String clientType = getClientType(reader);
+
+                // Create a new instance of ClientHandler with client type
+                executorService.execute(new ClientHandler(clientSocket, clientWriter, clientType));
             }
 
         } catch (IOException e) {
@@ -50,6 +56,10 @@ public class SmartFarmingServer {
             // Perform any other cleanup or shutdown tasks here
             executorService.shutdown();
         }
+    }
+
+    private static String getClientType(BufferedReader reader) throws IOException {
+        return reader.readLine();
     }
 
     private static void sendWarningToAllClients() {
@@ -65,4 +75,6 @@ public class SmartFarmingServer {
             }
         }
     }
+
+
 }

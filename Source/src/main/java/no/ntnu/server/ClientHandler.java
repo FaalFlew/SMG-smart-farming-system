@@ -21,11 +21,13 @@ public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final BufferedReader reader;
     private final PrintWriter writer;
+    private final String clientType;
 
-    public ClientHandler(Socket clientSocket, PrintWriter writer) throws IOException {
+    public ClientHandler(Socket clientSocket, PrintWriter writer, String clientType) throws IOException {
         this.clientSocket = clientSocket;
         this.reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         this.writer = writer;
+        this.clientType = clientType;
     }
 
     @Override
@@ -50,13 +52,12 @@ public class ClientHandler implements Runnable {
         String clientMessage;
         try {
             while ((clientMessage = reader.readLine()) != null) {
-                Logger.info("Received message from client: " + clientMessage);
+                Logger.info("Received message from client " + clientType +": "+ clientMessage);
 
                 handleMessage(clientMessage);
             }
         } catch (SocketException e) {
-            //TODO: provide client type and unique id to indicate which client disconnected
-            Logger.info("Client disconnected");
+            Logger.info("Client disconnected: " + clientType);
         } catch (IOException e) {
             e.printStackTrace();
         }
