@@ -1,4 +1,4 @@
-package no.ntnu.message;
+package no.ntnu.network.message;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -96,6 +96,20 @@ public class MessageHandler {
         warningMessage.addProperty("type", "WARNING");
         warningMessage.addProperty("message", message);
         return warningMessage.toString();
+    }
+
+    /**
+     * Creates a warning message with the specified content.
+     *
+     * @param message The content of the warning message.
+     * @return The JSON message representing a warning
+     */
+    public static String createShutdownMessage(String message) {
+        // Placeholder method for creating a warning message
+        JsonObject shutdownMessage = new JsonObject();
+        shutdownMessage.addProperty("type", "SHUT_DOWN");
+        shutdownMessage.addProperty("message", message);
+        return shutdownMessage.toString();
     }
 
     /**

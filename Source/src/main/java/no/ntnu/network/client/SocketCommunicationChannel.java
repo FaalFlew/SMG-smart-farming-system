@@ -18,7 +18,6 @@ public class SocketCommunicationChannel implements CommunicationChannel {
     private final String serverAddress;
     private final int serverPort;
     private PrintWriter writer;
-    private String clientType;
 
     /**
      * Constructs a new SocketCommunicationChannel instance with the specified server address and port
@@ -60,11 +59,10 @@ public class SocketCommunicationChannel implements CommunicationChannel {
      */
     @Override
     public boolean open(String clientType) {
-        this.clientType = clientType;
         Socket socket = createSocket();
 
         if (socket != null) {
-            boolean initialized = initializeWriter(socket);
+            boolean initialized = initializeWriter(socket, clientType);
             if (initialized) {
                 // Start a separate thread for continuous message sending
                 new Thread(this::readAndSendMessages).start();
@@ -72,12 +70,35 @@ public class SocketCommunicationChannel implements CommunicationChannel {
                 // Start a separate thread for listening to server messages
                 new Thread(new ClientListener(socket)).start();
 
+                Logger.info("Communication channel opened successfully with client type: " + clientType);
                 return true;
             } else {
                 closeSocket(socket);
+                Logger.warning("Failed to initialize writer. Communication channel not opened.");
             }
+        } else {
+            Logger.warning("Failed to create socket. Communication channel not opened.");
         }
         return false;
+    }
+
+    /**
+     * Initializes the PrintWriter for sending messages and performs a handshake with the server by sending the client type
+     *
+     * @param socket The socket for communication with the server
+     * @return true if the writer is successfully initialized, false otherwise
+     */
+    private boolean initializeWriter(Socket socket, String clientType) {
+        try {
+            writer = new PrintWriter(socket.getOutputStream(), true);
+            // Send the client type during the handshake
+            writer.println(clientType);
+            Logger.info("Writer initialized with client type: " + clientType);
+            return true;
+        } catch (IOException e) {
+            Logger.error("Error initializing writer: " + e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -99,7 +120,7 @@ public class SocketCommunicationChannel implements CommunicationChannel {
                 sendMessage(userInput);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Error reading and sending messages: " + e.getMessage());
         }
     }
 
@@ -123,28 +144,11 @@ public class SocketCommunicationChannel implements CommunicationChannel {
         try {
             return new Socket(serverAddress, serverPort);
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.error("Failed to create a socket: " + e.getMessage());
             return null;
         }
     }
 
-    /**
-     * Initializes the PrintWriter for sending messages and performs a handshake with the server by sending the client type
-     *
-     * @param socket The socket for communication with the server
-     * @return true if the writer is successfully initialized, false otherwise
-     */
-    private boolean initializeWriter(Socket socket) {
-        try {
-            writer = new PrintWriter(socket.getOutputStream(), true);
-            // Send the client type during the handshake
-            writer.println(clientType);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 
     /**
      * Closes the socket and associated resources
@@ -156,11 +160,15 @@ public class SocketCommunicationChannel implements CommunicationChannel {
             try {
                 if (writer != null) {
                     writer.close();
+                    Logger.info("Writer closed successfully");
                 }
                 socket.close();
+                Logger.info("Socket closed successfully");
             } catch (IOException e) {
-                e.printStackTrace();
+                Logger.error( "Failed to close socket: " + e.getMessage());
             }
+        } else {
+            Logger.warning("Socket is already closed or null. No action taken.");
         }
     }
 }

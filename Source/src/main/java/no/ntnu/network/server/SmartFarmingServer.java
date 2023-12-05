@@ -1,6 +1,6 @@
 package no.ntnu.network.server;
 
-import no.ntnu.message.MessageHandler;
+import no.ntnu.network.message.MessageHandler;
 import no.ntnu.tools.Logger;
 
 import java.io.BufferedReader;
@@ -32,8 +32,10 @@ public class SmartFarmingServer {
      */
     public static void main(String[] args) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            // Perform cleanup tasks, including sending the warning message
-            sendWarningToAllClients();
+
+            // Call the method to send a warning to all connected clients before shutting down
+            sendShutdownToAllClients("Server is closing...");
+            // Perform cleanup tasks
             executorService.shutdown();
         }));
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -60,7 +62,7 @@ public class SmartFarmingServer {
             Logger.error("Error starting the server: " + e.getMessage());
         } finally {
             // Call the method to send a warning to all connected clients before shutting down
-            sendWarningToAllClients();
+            sendShutdownToAllClients("Server is closing...");
 
             // Perform any other cleanup or shutdown tasks here
             executorService.shutdown();
@@ -81,16 +83,30 @@ public class SmartFarmingServer {
     /**
      * Sends a warning message to all connected clients before shutting down the server
      */
-    private static void sendWarningToAllClients() {
+    private static void sendWarningToAllClients(String message) {
         for (PrintWriter clientWriter : connectedClients) {
             try {
                 // Create a warning message
-                String warningMessage = MessageHandler.createWarningMessage("Server will close soon!");
+                String warningMessage = MessageHandler.createWarningMessage(message);
 
                 // Send the warning message to the client
                 clientWriter.println(warningMessage);
             } catch (Exception e) {
                 Logger.error("Error sending warning to client: " + e.getMessage());
+            }
+        }
+    }
+
+    private static void sendShutdownToAllClients(String message) {
+        for (PrintWriter clientWriter : connectedClients) {
+            try {
+                // Create a shutdown message
+                String shutdownMessage = MessageHandler.createShutdownMessage(message);
+
+                // Send the shutdown message to the client
+                clientWriter.println(shutdownMessage);
+            } catch (Exception e) {
+                Logger.error("Error sending shutdown message to client: " + e.getMessage());
             }
         }
     }

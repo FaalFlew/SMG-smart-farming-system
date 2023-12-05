@@ -1,4 +1,4 @@
-package no.ntnu.message;
+package no.ntnu.network.message;
 
 import com.google.gson.JsonObject;
 
