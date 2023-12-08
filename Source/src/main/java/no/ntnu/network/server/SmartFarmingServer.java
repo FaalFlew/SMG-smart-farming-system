@@ -82,6 +82,8 @@ public class SmartFarmingServer {
 
     /**
      * Sends a warning message to all connected clients before shutting down the server
+     * @param message The message to be sent to all connected clients.
+
      */
     private static void sendWarningToAllClients(String message) {
         for (PrintWriter clientWriter : connectedClients) {

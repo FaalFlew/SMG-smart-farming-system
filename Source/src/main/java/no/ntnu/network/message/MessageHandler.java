@@ -17,6 +17,18 @@ import java.util.List;
 public class MessageHandler {
 
     private static final Gson gson = new Gson();
+// TODO: addd a message informing the client control panel of all possible commands it can send that is sent when the client connects
+
+//TODO: USe this method to validate json at client level
+    public static boolean isMessageFormatValidJSON(String userInput) {
+        try {
+            gson.fromJson(userInput, JsonObject.class);
+            return true;
+        } catch (JsonSyntaxException e) {
+            Logger.error("Error parsing JSON: " + e.getMessage());
+            return false;
+        }
+    }
 
     /**
      * Creates a JSON message for sensor data with the specified node ID and list of sensor readings

@@ -9,26 +9,36 @@ import java.net.Socket;
 
 public class ClientListener implements Runnable {
 
-    private final Socket clientSocket;
+    private final SocketCommunicationChannel communicationChannel;
 
-    public ClientListener(Socket clientSocket) {
-        this.clientSocket = clientSocket;
+    public ClientListener(SocketCommunicationChannel communicationChannel) {
+        this.communicationChannel = communicationChannel;
     }
 
     @Override
     public void run() {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(communicationChannel.getClientSocket().getInputStream()))) {
             String serverMessage;
             while ((serverMessage = reader.readLine()) != null) {
                 Logger.info("Received message from server: " + serverMessage);
 
-                // TODO: Handle the server message as needed
+                // Handle the server message as needed
+                if (isShutdownNotification(serverMessage)) {
+                    Logger.warning("Server shutdown notification received. Closing the client socket and writer.");
+                        communicationChannel.setShutdownReceived(true);
+                        communicationChannel.closeSocketAndWriter();
+                    break;
+                }
 
-                // Example
-                // messagehandler.handleServerMessage(serverMessage);
+                // TODO: Continue handling other server messages
+                // Example: messagehandler.handleServerMessage(serverMessage);
             }
         } catch (IOException e) {
             Logger.error("Error reading server message: " + e.getMessage());
         }
+    }
+
+    private boolean isShutdownNotification(String serverMessage) {
+        return serverMessage.contains("SHUT_DOWN");
     }
 }

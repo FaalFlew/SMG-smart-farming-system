@@ -1,6 +1,8 @@
 package no.ntnu.network.client;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import no.ntnu.controlpanel.CommunicationChannel;
 import no.ntnu.tools.Logger;
 
@@ -15,9 +17,13 @@ import java.net.Socket;
  * with the server using a socket connection
  */
 public class SocketCommunicationChannel implements CommunicationChannel {
+
     private final String serverAddress;
     private final int serverPort;
+    private Socket clientSocket;
     private PrintWriter writer;
+    private static final Gson gson = new Gson();
+    private volatile boolean serverShutdownReceived = false;
 
     /**
      * Constructs a new SocketCommunicationChannel instance with the specified server address and port
@@ -59,21 +65,17 @@ public class SocketCommunicationChannel implements CommunicationChannel {
      */
     @Override
     public boolean open(String clientType) {
-        Socket socket = createSocket();
+        clientSocket = createSocket();
 
-        if (socket != null) {
-            boolean initialized = initializeWriter(socket, clientType);
+        if (clientSocket != null) {
+            boolean initialized = initializeWriter(clientSocket, clientType);
             if (initialized) {
-                // Start a separate thread for continuous message sending
                 new Thread(this::readAndSendMessages).start();
-
-                // Start a separate thread for listening to server messages
-                new Thread(new ClientListener(socket)).start();
-
-                Logger.info("Communication channel opened successfully with client type: " + clientType);
+                new Thread(new ClientListener(this)).start();
+                Logger.info("Communication channel opened successfully");
                 return true;
             } else {
-                closeSocket(socket);
+                closeSocket(clientSocket);
                 Logger.warning("Failed to initialize writer. Communication channel not opened.");
             }
         } else {
@@ -86,12 +88,12 @@ public class SocketCommunicationChannel implements CommunicationChannel {
      * Initializes the PrintWriter for sending messages and performs a handshake with the server by sending the client type
      *
      * @param socket The socket for communication with the server
+     * @param clientType The clientType for communication with the server
      * @return true if the writer is successfully initialized, false otherwise
      */
     private boolean initializeWriter(Socket socket, String clientType) {
         try {
             writer = new PrintWriter(socket.getOutputStream(), true);
-            // Send the client type during the handshake
             writer.println(clientType);
             Logger.info("Writer initialized with client type: " + clientType);
             return true;
@@ -101,6 +103,7 @@ public class SocketCommunicationChannel implements CommunicationChannel {
         }
     }
 
+
     /**
      * Reads and sends user-entered messages to the server in a separate thread.
      */
@@ -108,19 +111,46 @@ public class SocketCommunicationChannel implements CommunicationChannel {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
         try {
-            while (true) {
+            while (!serverShutdownReceived) {
                 Logger.info("Enter a message to send to the server (or 'exit' to quit): ");
                 String userInput = reader.readLine();
 
                 if ("exit".equalsIgnoreCase(userInput)) {
+                    closeSocketAndWriter();
                     break;
                 }
 
-                // Send the user-entered message to the server
-                sendMessage(userInput);
+                if (isMessageFormatValidJSON(userInput)) {
+                    sendMessage(userInput);
+                } else {
+                    Logger.error("Invalid JSON format. Please enter a valid JSON message.");
+                }
             }
         } catch (IOException e) {
             Logger.error("Error reading and sending messages: " + e.getMessage());
+        }
+    }
+
+    /**
+     * sets the shutdown value
+     * @param ServerShutdownReceived shutdown value
+     */
+    public void setShutdownReceived(boolean ServerShutdownReceived) {
+        this.serverShutdownReceived = ServerShutdownReceived;
+    }
+
+    /**
+     * validates client input at client level
+     * @param userInput the client input
+     * @return boolean is valid or invalid
+     */
+    private boolean isMessageFormatValidJSON(String userInput) {
+        try {
+            gson.fromJson(userInput, JsonObject.class);
+            return true;
+        } catch (JsonSyntaxException e) {
+            Logger.error("Error parsing JSON: " + e.getMessage());
+            return false;
         }
     }
 
@@ -149,7 +179,6 @@ public class SocketCommunicationChannel implements CommunicationChannel {
         }
     }
 
-
     /**
      * Closes the socket and associated resources
      *
@@ -158,17 +187,41 @@ public class SocketCommunicationChannel implements CommunicationChannel {
     private void closeSocket(Socket socket) {
         if (socket != null && !socket.isClosed()) {
             try {
-                if (writer != null) {
-                    writer.close();
-                    Logger.info("Writer closed successfully");
-                }
+                closeWriter();
                 socket.close();
                 Logger.info("Socket closed successfully");
             } catch (IOException e) {
-                Logger.error( "Failed to close socket: " + e.getMessage());
+                Logger.error("Failed to close socket: " + e.getMessage());
             }
         } else {
             Logger.warning("Socket is already closed or null. No action taken.");
         }
+    }
+    /**
+    * Closes the socket and associated resources
+    */
+    private void closeWriter() {
+        if (writer != null) {
+            writer.close();
+            Logger.info("Writer closed successfully");
+        } else {
+            Logger.warning("Writer is already closed or null. No action taken.");
+        }
+    }
+
+    /**
+     * close both the socket and writer
+     */
+    public void closeSocketAndWriter() {
+        closeWriter();
+        closeSocket(clientSocket);
+    }
+
+    /**
+     * gets the client socket
+     * @return the client socket
+     */
+    public Socket getClientSocket() {
+        return clientSocket;
     }
 }

@@ -74,6 +74,7 @@ public class ClientHandler implements Runnable {
                 Logger.info("Received message from client " + clientType +": "+ clientMessage);
 
                 handleMessage(clientMessage);
+                 
             }
         } catch (SocketException e) {
             Logger.info("Client disconnected: " + clientType);
@@ -106,6 +107,20 @@ public class ClientHandler implements Runnable {
                     // TODO: Send the command to the actuator client then recieve response from client, forward the response to control panel.
                     handleActuatorControl(clientMessage);
                     break;
+                    
+                case "ALL_CONTROL_COMMANDS":
+                    // these "tdoo" methods may be done in the client class and the feedback or result of the call should be returned to server to furthar forward to contorl panel.
+                    // TODO: method to check if node ID of the controlpanel we are sending data to exists.
+
+                    handleSensorData(clientMessage);
+                    break;
+                case "SHUT_DOWN":
+                    // these "tdoo" methods may be done in the client class and the feedback or result of the call should be returned to server to furthar forward to contorl panel.
+                    // TODO: method to check if node ID of the controlpanel we are sending data to exists.
+
+                    handleSensorData(clientMessage);
+                    break;
+
                 // Add more cases for other message types
 
                 default:
