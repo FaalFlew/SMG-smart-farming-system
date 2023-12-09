@@ -13,7 +13,9 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,7 +29,10 @@ public class SmartFarmingServer {
     public static final int PORT = 6019;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
     private static final List<PrintWriter> connectedClients = new ArrayList<>();
-    private static final List<ClientInfo> controlPanelClients = new CopyOnWriteArrayList<>();
+    public static final List<ClientInfo> controlPanelClients = new CopyOnWriteArrayList<>();
+    public static final Map<String, ClientInfo> clientInfoMap = new HashMap<>();
+    private static final Map<String, Long> lastHeartbeatMap = new HashMap<>();
+
     private static final Gson gson = new Gson();
 
 
@@ -53,20 +58,16 @@ public class SmartFarmingServer {
                 Logger.info("Client connected: " + clientSocket.getInetAddress().getHostName() +
                         " [" + clientSocket.getPort() + "]");
 
-                // Store the client's PrintWriter and client information in the list
                 PrintWriter clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String clientType = getClientType(reader);
 
                 if ("CONTROL_PANEL".equalsIgnoreCase(clientType)) {
-                    // Process CONTROL_PANEL client information
                     processControlPanelClient(clientSocket, clientWriter, reader);
+                    sendConnectedControlPanelClients(clientWriter); // Send the connected control panel clients to the new control panel
                 }
 
-                // Create a new instance of ClientHandler with client type
                 executorService.execute(new ClientHandler(clientSocket, clientWriter, clientType));
-                sendConnectedControlPanelClients(clientWriter);
-
             }
         } catch (IOException e) {
             Logger.error("Error starting the server: " + e.getMessage());
@@ -77,6 +78,29 @@ public class SmartFarmingServer {
             // Perform any other cleanup or shutdown tasks here
             executorService.shutdown();
         }
+    }
+
+    public static void forwardCommandToClient(int nodeId, String commandMessage) {
+        for (ClientInfo clientInfo : controlPanelClients) {
+            if (clientInfo.getNodeId() == nodeId) {
+                PrintWriter clientWriter = clientInfo.getClientWriter();
+                if (clientWriter != null) {
+                    clientWriter.println(commandMessage);
+                    return; // Command forwarded successfully
+                }
+            }
+        }
+        // Handle the case when the client with the specified nodeId is not found
+        Logger.error("Client with nodeId " + nodeId + " not found");
+    }
+
+    public static void removeControlPanelClient(int nodeId) {
+        controlPanelClients.removeIf(clientInfo -> clientInfo.getNodeId() == nodeId);
+
+        // Remove from the map as well
+        clientInfoMap.values().removeIf(clientInfo -> clientInfo.getNodeId() == nodeId);
+
+        Logger.info("Control Panel client removed: nodeId=" + nodeId);
     }
     private static PrintWriter processControlPanelClient(Socket clientSocket, PrintWriter writer, BufferedReader reader) throws IOException {
         // Read additional information from CONTROL_PANEL client
@@ -90,7 +114,11 @@ public class SmartFarmingServer {
         boolean isOn = infoObject.getAsJsonPrimitive("isOn").getAsBoolean();
 
         // Store the client information in the list
-        controlPanelClients.add(new ClientInfo(nodeId, actuatorId, isOn, clientSocket.getInetAddress().getHostName(), writer));
+        ClientInfo clientInfo = new ClientInfo(nodeId, actuatorId, isOn, clientSocket.getInetAddress().getHostName(), writer);
+        controlPanelClients.add(clientInfo);
+
+        // Store ClientInfo in the map for future reference
+        clientInfoMap.put(clientSocket.getInetAddress().getHostAddress(), clientInfo);
 
         return writer;
     }
@@ -102,11 +130,10 @@ public class SmartFarmingServer {
 
         for (ClientInfo clientInfo : controlPanelClients) {
             JsonObject clientObject = new JsonObject();
-            clientObject.addProperty("nodeId", clientInfo.getNodeId());
+            clientObject.addProperty("nodeid", clientInfo.getNodeId());
             clientObject.addProperty("actuatorId", clientInfo.getActuatorId());
             clientObject.addProperty("isOn", clientInfo.isOn());
             clientObject.addProperty("clientAddress", clientInfo.getClientAddress());
-
 
             clientsArray.add(clientObject);
         }
@@ -122,7 +149,7 @@ public class SmartFarmingServer {
      * @return The client type as a String
      * @throws IOException If an I/O error occurs while reading the client type
      */
-    private static String getClientType(BufferedReader reader) throws IOException {
+    public static String getClientType(BufferedReader reader) throws IOException {
         return reader.readLine();
     }
 
@@ -144,6 +171,7 @@ public class SmartFarmingServer {
             }
         }
     }
+
 
     private static void sendShutdownToAllClients(String message) {
         for (PrintWriter clientWriter : connectedClients) {

@@ -1,5 +1,6 @@
 package no.ntnu.network.server;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import no.ntnu.network.message.MessageHandler;
 import no.ntnu.greenhouse.Actuator;
@@ -16,7 +17,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static no.ntnu.network.server.SmartFarmingServer.sendConnectedControlPanelClients;
+import static no.ntnu.network.server.SmartFarmingServer.*;
 
 /**
  * The ClientHandler class handles communication with a client connected to the server
@@ -28,6 +29,9 @@ public class ClientHandler implements Runnable {
     private final BufferedReader reader;
     private final PrintWriter writer;
     private final String clientType;
+    private volatile boolean hasRespondedToPing = true;
+
+    private static final Gson gson = new Gson();
 
     /**
      * Constructs a new ClientHandler instance
@@ -69,19 +73,32 @@ public class ClientHandler implements Runnable {
      *
      * @throws IOException If an I/O error occurs during communication with the client.
      */
-    private void handleClient()  throws IOException {
+    private void handleClient() throws IOException {
         String clientMessage;
         try {
             while ((clientMessage = reader.readLine()) != null) {
-                Logger.info("Received message from client " + clientType +": "+ MessageHandler.validateMessageFormat(clientMessage));
+                Logger.info("Received message from client " + clientType + " (NodeID: " + getClientNodeID() + "): " + MessageHandler.validateMessageFormat(clientMessage));
 
                 handleMessage(clientMessage);
-
             }
         } catch (SocketException e) {
             Logger.info("Client disconnected: " + clientType);
+            handleClientDisconnect();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                clientSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void handleClientDisconnect() {
+        if ("CONTROL_PANEL".equalsIgnoreCase(clientType)) {
+            // Remove the control panel client information
+            SmartFarmingServer.removeControlPanelClient(getClientNodeID());
         }
     }
 
@@ -97,36 +114,30 @@ public class ClientHandler implements Runnable {
             String messageType = MessageHandler.getMessageType(clientMessage);
 
             switch (messageType) {
+                case "ping":
+                    // Update the ping response flag
+                    hasRespondedToPing = true;
+                    break;
                 case "sensor_data":
-                    // these "tdoo" methods may be done in the client class and the feedback or result of the call should be returned to server to furthar forward to contorl panel.
-                    // TODO: method to check if node ID of the controlpanel we are sending data to exists.
-
                     handleSensorData(clientMessage);
                     break;
                 case "actuator_control":
-                    // these "tdoo" methods may be done in the client class and the feedback or result of the call should be
-                    // returned to server to furthar forward to contorl panel.
-                    // No need for too much network traffic, one call from control panel then a response back to the control panel.
-                    // TODO: method to check if node ID and ID of the actutator we are sending a command to exists.
-                    // TODO: Send the command to the actuator client then recieve response from client, forward the response to control panel.
                     handleActuatorControl(clientMessage);
                     break;
                 case "all":
                     // Send information about all connected CONTROL_PANEL clients
                     sendConnectedControlPanelClients(writer);
                     break;
-
+                case "command_to_control_panel":
+                    // send a command to a control panel, examble {"type":"command_to_control_panel","nodeid":"4"}
+                    handleCommandToControlPanel(clientMessage);
+                    break;
 
                 case "all_control_commands":
-                    // these "tdoo" methods may be done in the client class and the feedback or result of the call should be returned to server to furthar forward to contorl panel.
-                    // TODO: method to check if node ID of the controlpanel we are sending data to exists.
-
+                    // TODO: send all control commands available for contorlpanel, store this case switch in a nice class first.
                     handleSensorData(clientMessage);
                     break;
                 case "shut_down":
-                    // these "tdoo" methods may be done in the client class and the feedback or result of the call should be returned to server to furthar forward to contorl panel.
-                    // TODO: method to check if node ID of the controlpanel we are sending data to exists.
-
                     handleSensorData(clientMessage);
                     break;
 
@@ -140,6 +151,29 @@ public class ClientHandler implements Runnable {
         }
     }
 
+
+    // Add a method to retrieve the node ID from the ClientInfo
+    public int getClientNodeID() {
+        if ("CONTROL_PANEL".equalsIgnoreCase(clientType)) {
+            ClientInfo controlPanelInfo = getClientInfoByAddress(clientSocket.getInetAddress().getHostAddress());
+            return (controlPanelInfo != null) ? controlPanelInfo.getNodeId() : -1;
+        }
+        return -1;
+    }
+
+    // Add a method to retrieve the ClientInfo based on the client address
+    private ClientInfo getClientInfoByAddress(String clientAddress) {
+        return clientInfoMap.get(clientAddress);
+    }
+
+    private void handleCommandToControlPanel(String clientMessage) {
+        // Parse the command message and extract the nodeId
+        JsonObject commandObject = gson.fromJson(clientMessage, JsonObject.class);
+        int nodeId = commandObject.getAsJsonPrimitive("nodeid").getAsInt();
+
+        // Forward the command to the specified client
+        SmartFarmingServer.forwardCommandToClient(nodeId, clientMessage);
+    }
     /**
      * Handles sensor data received from the client, parsing and processing the data
      *
@@ -185,8 +219,8 @@ public class ClientHandler implements Runnable {
             public void run() {
                 // Simulate sensor data
                 JsonObject sensorData = new JsonObject();
-                sensorData.addProperty("type", "SENSOR_DATA");
-                sensorData.addProperty("nodeId", nodeId);
+                sensorData.addProperty("type", "sensor_data");
+                sensorData.addProperty("nodeid", nodeId);
                 sensorData.addProperty("temperature", Math.random() * 30);
                 sensorData.addProperty("humidity", Math.random() * 100);
 
