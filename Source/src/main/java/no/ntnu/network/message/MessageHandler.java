@@ -1,9 +1,6 @@
 package no.ntnu.network.message;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.*;
 import no.ntnu.greenhouse.Actuator;
 import no.ntnu.greenhouse.SensorReading;
 import no.ntnu.controlpanel.ControlPanelLogic;
@@ -16,17 +13,25 @@ import java.util.List;
  */
 public class MessageHandler {
 
-    private static final Gson gson = new Gson();
-// TODO: addd a message informing the client control panel of all possible commands it can send that is sent when the client connects
+    private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(String.class, new TrimStringDeserializer())
+            .create();
 
-//TODO: USe this method to validate json at client level
-    public static boolean isMessageFormatValidJSON(String userInput) {
+    // TODO: addd a message informing the client control panel of all possible commands it can send that is sent when the client connects
+
+    //TODO: USe this method to validate json at client level
+    public static String validateMessageFormat(String userInput) {
         try {
+            // Turn all message to lowercase
+            userInput = userInput.toLowerCase();
+
+            // remove all spaces from the message
+            userInput = userInput.replaceAll("\\s", "");
             gson.fromJson(userInput, JsonObject.class);
-            return true;
+            return userInput;
         } catch (JsonSyntaxException e) {
             Logger.error("Error parsing JSON: " + e.getMessage());
-            return false;
+            throw new IllegalArgumentException(e.getMessage());
         }
     }
 
@@ -137,8 +142,6 @@ public class MessageHandler {
                 Logger.error("Input message is null.");
             }
 
-            message = message.toLowerCase();
-
             JsonObject jsonMessage = gson.fromJson(message, JsonObject.class);
 
             if (jsonMessage == null) {
@@ -156,7 +159,6 @@ public class MessageHandler {
             throw new IllegalArgumentException(errorMessage);
         }
     }
-
 
 
 

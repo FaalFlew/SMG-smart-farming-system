@@ -71,7 +71,7 @@ public class ClientHandler implements Runnable {
         String clientMessage;
         try {
             while ((clientMessage = reader.readLine()) != null) {
-                Logger.info("Received message from client " + clientType +": "+ clientMessage);
+                Logger.info("Received message from client " + clientType +": "+ MessageHandler.validateMessageFormat(clientMessage));
 
                 handleMessage(clientMessage);
 
@@ -90,6 +90,8 @@ public class ClientHandler implements Runnable {
      */
     private void handleMessage(String clientMessage) {
         try {
+            // validate message
+            clientMessage = MessageHandler.validateMessageFormat(clientMessage);
             String messageType = MessageHandler.getMessageType(clientMessage);
 
             switch (messageType) {
