@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static no.ntnu.network.server.SmartFarmingServer.sendConnectedControlPanelClients;
+
 /**
  * The ClientHandler class handles communication with a client connected to the server
  * It implements the Runnable interface to be used in a separate thread for concurrent handling of multiple clients.
@@ -109,6 +111,11 @@ public class ClientHandler implements Runnable {
                     // TODO: Send the command to the actuator client then recieve response from client, forward the response to control panel.
                     handleActuatorControl(clientMessage);
                     break;
+                case "all":
+                    // Send information about all connected CONTROL_PANEL clients
+                    sendConnectedControlPanelClients(writer);
+                    break;
+
 
                 case "all_control_commands":
                     // these "tdoo" methods may be done in the client class and the feedback or result of the call should be returned to server to furthar forward to contorl panel.

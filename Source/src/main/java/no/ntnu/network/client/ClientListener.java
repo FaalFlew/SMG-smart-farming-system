@@ -5,7 +5,6 @@ import no.ntnu.tools.Logger;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.Socket;
 
 public class ClientListener implements Runnable {
 

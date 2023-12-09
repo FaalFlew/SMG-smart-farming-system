@@ -23,6 +23,7 @@ public class SocketCommunicationChannel implements CommunicationChannel {
     private Socket clientSocket;
     private PrintWriter writer;
     private static final Gson gson = new Gson();
+
     private volatile boolean serverShutdownReceived = false;
 
     /**

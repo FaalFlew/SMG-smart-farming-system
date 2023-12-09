@@ -1,5 +1,8 @@
 package no.ntnu.network.server;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import no.ntnu.network.message.MessageHandler;
 import no.ntnu.tools.Logger;
 
@@ -11,6 +14,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,6 +27,9 @@ public class SmartFarmingServer {
     public static final int PORT = 6019;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
     private static final List<PrintWriter> connectedClients = new ArrayList<>();
+    private static final List<ClientInfo> controlPanelClients = new CopyOnWriteArrayList<>();
+    private static final Gson gson = new Gson();
+
 
     /**
      * The main entry point for starting the Smart Farming Server
@@ -46,18 +53,21 @@ public class SmartFarmingServer {
                 Logger.info("Client connected: " + clientSocket.getInetAddress().getHostName() +
                         " [" + clientSocket.getPort() + "]");
 
-                // Store the client's PrintWriter in the list
+                // Store the client's PrintWriter and client information in the list
                 PrintWriter clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
-                connectedClients.add(clientWriter);
-
-                // Identify client type
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String clientType = getClientType(reader);
 
+                if ("CONTROL_PANEL".equalsIgnoreCase(clientType)) {
+                    // Process CONTROL_PANEL client information
+                    processControlPanelClient(clientSocket, clientWriter, reader);
+                }
+
                 // Create a new instance of ClientHandler with client type
                 executorService.execute(new ClientHandler(clientSocket, clientWriter, clientType));
-            }
+                sendConnectedControlPanelClients(clientWriter);
 
+            }
         } catch (IOException e) {
             Logger.error("Error starting the server: " + e.getMessage());
         } finally {
@@ -67,6 +77,42 @@ public class SmartFarmingServer {
             // Perform any other cleanup or shutdown tasks here
             executorService.shutdown();
         }
+    }
+    private static PrintWriter processControlPanelClient(Socket clientSocket, PrintWriter writer, BufferedReader reader) throws IOException {
+        // Read additional information from CONTROL_PANEL client
+        String jsonInfo = reader.readLine();
+
+        // Parse the JSON string to extract the required information
+        JsonObject infoObject = gson.fromJson(jsonInfo, JsonObject.class);
+
+        int actuatorId = infoObject.getAsJsonPrimitive("actuatorId").getAsInt();
+        int nodeId = infoObject.getAsJsonPrimitive("nodeId").getAsInt();
+        boolean isOn = infoObject.getAsJsonPrimitive("isOn").getAsBoolean();
+
+        // Store the client information in the list
+        controlPanelClients.add(new ClientInfo(nodeId, actuatorId, isOn, clientSocket.getInetAddress().getHostName(), writer));
+
+        return writer;
+    }
+
+    public static void sendConnectedControlPanelClients(PrintWriter clientWriter) {
+        JsonObject response = new JsonObject();
+        response.addProperty("type", "all");
+        JsonArray clientsArray = new JsonArray();
+
+        for (ClientInfo clientInfo : controlPanelClients) {
+            JsonObject clientObject = new JsonObject();
+            clientObject.addProperty("nodeId", clientInfo.getNodeId());
+            clientObject.addProperty("actuatorId", clientInfo.getActuatorId());
+            clientObject.addProperty("isOn", clientInfo.isOn());
+            clientObject.addProperty("clientAddress", clientInfo.getClientAddress());
+
+
+            clientsArray.add(clientObject);
+        }
+
+        response.add("connectedControlPanelClients", clientsArray);
+        clientWriter.println(response.toString());
     }
 
     /**
