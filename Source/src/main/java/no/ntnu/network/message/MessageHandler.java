@@ -137,6 +137,8 @@ public class MessageHandler {
                 Logger.error("Input message is null.");
             }
 
+            message = message.toLowerCase();
+
             JsonObject jsonMessage = gson.fromJson(message, JsonObject.class);
 
             if (jsonMessage == null) {
@@ -144,7 +146,7 @@ public class MessageHandler {
             }
 
             if (!jsonMessage.has("type")) {
-                Logger.error( "Message does not contain a 'type' attribute");
+                Logger.error("Message does not contain a 'type' attribute");
             }
 
             return jsonMessage.get("type").getAsString();
@@ -154,6 +156,9 @@ public class MessageHandler {
             throw new IllegalArgumentException(errorMessage);
         }
     }
+
+
+
 
 
     /**
