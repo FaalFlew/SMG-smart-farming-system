@@ -2,6 +2,9 @@ package no.ntnu.network.server;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import no.ntnu.network.client.clientinfo.BaseClientInfo;
+import no.ntnu.network.client.clientinfo.ControlPanelClientInfo;
+import no.ntnu.network.client.clientinfo.SensorActuatorClientInfo;
 import no.ntnu.network.message.MessageHandler;
 import no.ntnu.greenhouse.Actuator;
 import no.ntnu.greenhouse.SensorReading;
@@ -29,8 +32,6 @@ public class ClientHandler implements Runnable {
     private final BufferedReader reader;
     private final PrintWriter writer;
     private final String clientType;
-    private volatile boolean hasRespondedToPing = true;
-
     private static final Gson gson = new Gson();
 
     /**
@@ -82,7 +83,7 @@ public class ClientHandler implements Runnable {
                 handleMessage(clientMessage);
             }
         } catch (SocketException e) {
-            Logger.info("Client disconnected: " + clientType);
+            Logger.info("Client disconnected: "+ clientType +" with nodeId:"+ getClientNodeID());
             handleClientDisconnect();
         } catch (IOException e) {
             e.printStackTrace();
@@ -100,6 +101,9 @@ public class ClientHandler implements Runnable {
             // Remove the control panel client information
             SmartFarmingServer.removeControlPanelClient(getClientNodeID());
         }
+        if ("SENSOR_ACTUATOR".equalsIgnoreCase(clientType)) {
+            SmartFarmingServer.removeSensorActuatorClient(getClientNodeID());
+        }
     }
 
     /**
@@ -114,10 +118,6 @@ public class ClientHandler implements Runnable {
             String messageType = MessageHandler.getMessageType(clientMessage);
 
             switch (messageType) {
-                case "ping":
-                    // Update the ping response flag
-                    hasRespondedToPing = true;
-                    break;
                 case "sensor_data":
                     handleSensorData(clientMessage);
                     break;
@@ -128,11 +128,14 @@ public class ClientHandler implements Runnable {
                     // Send information about all connected CONTROL_PANEL clients
                     sendConnectedControlPanelClients(writer);
                     break;
+                case "all_sensors":
+                    // Send information about all connected CONTROL_PANEL clients
+                    sendConnectedSensorActuatorClients(writer);
+                    break;
                 case "command_to_control_panel":
                     // send a command to a control panel, examble {"type":"command_to_control_panel","nodeid":"4"}
                     handleCommandToControlPanel(clientMessage);
                     break;
-
                 case "all_control_commands":
                     // TODO: send all control commands available for contorlpanel, store this case switch in a nice class first.
                     handleSensorData(clientMessage);
@@ -154,16 +157,22 @@ public class ClientHandler implements Runnable {
 
     // Add a method to retrieve the node ID from the ClientInfo
     public int getClientNodeID() {
-        if ("CONTROL_PANEL".equalsIgnoreCase(clientType)) {
-            ClientInfo controlPanelInfo = getClientInfoByAddress(clientSocket.getInetAddress().getHostAddress());
-            return (controlPanelInfo != null) ? controlPanelInfo.getNodeId() : -1;
+        BaseClientInfo clientInfo = getClientInfoByPortNumber(clientSocket.getPort());
+
+        if ("CONTROL_PANEL".equalsIgnoreCase(clientType) && clientInfo instanceof ControlPanelClientInfo) {
+            return clientInfo.getNodeId();
         }
+        if ("SENSOR_ACTUATOR".equalsIgnoreCase(clientType) && clientInfo instanceof SensorActuatorClientInfo) {
+            return clientInfo.getNodeId();
+        }
+
         return -1;
     }
 
     // Add a method to retrieve the ClientInfo based on the client address
-    private ClientInfo getClientInfoByAddress(String clientAddress) {
-        return clientInfoMap.get(clientAddress);
+    private BaseClientInfo getClientInfoByPortNumber(int clientPort) {
+        return ("CONTROL_PANEL".equalsIgnoreCase(clientType)) ? controlPanelClientInfoMap.get(clientPort) : sensorActuatorClientInfoMap.get(clientPort);
+
     }
 
     private void handleCommandToControlPanel(String clientMessage) {
@@ -199,14 +208,14 @@ public class ClientHandler implements Runnable {
 
         // TODO: Implement actuator control logic
 
-        // Respond to the client if needed
+        // Respond to the client
         String response = MessageHandler.createSuccessResponse("ACTUATOR_CONTROL");
         writer.println(response);
     }
 
     //to be done Add more methods for handling different message types
 
-    // Example method for simulating periodic sensor data broadcast
+    //  method for simulating periodic sensor data broadcast should be used along the starting value of sensornode
     /**
      * Simulates periodic sensor data broadcast to the client
      *

@@ -1,5 +1,7 @@
 package no.ntnu.controlpanel;
 
+import com.google.gson.JsonObject;
+
 /**
  * A communication channel for disseminating control commands to the sensor nodes
  * (sending commands to the server) and receiving notifications about events.
@@ -15,10 +17,17 @@ public interface CommunicationChannel {
    */
   void sendActuatorChange(int nodeId, int actuatorId, boolean isOn);
 
+
+
+
+  void sendSensorData(int nodeId, int actuatorId,  String actuatorType, boolean isOn, String sensorType, double sensorValue);
+
+
   /**
    * Open the communication channel.
    *
    * @return True when the communication channel is successfully opened, false on error
    */
   boolean open(String clientType);
+
 }

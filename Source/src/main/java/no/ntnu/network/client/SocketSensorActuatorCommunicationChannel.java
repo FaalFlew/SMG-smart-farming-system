@@ -13,11 +13,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-/**
- * The SocketCommunicationChannel class implements the CommunicationChannel interface for communication
- * with the server using a socket connection
- */
-public class SocketCommunicationChannel implements ExtendedCommunicationChannel {
+public class SocketSensorActuatorCommunicationChannel implements ExtendedCommunicationChannel {
 
     private final String serverAddress;
     private final int serverPort;
@@ -27,38 +23,17 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
 
     private volatile boolean serverShutdownReceived = false;
 
-    /**
-     * Constructs a new SocketCommunicationChannel instance with the specified server address and port
-     *
-     * @param serverAddress The server address for establishing a socket connection
-     * @param serverPort    The server port for establishing a socket connection
-     */
-    public SocketCommunicationChannel(String serverAddress, int serverPort) {
+    public SocketSensorActuatorCommunicationChannel(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
     }
-
-    /**
-     * Sends a control command to change the state of an actuator.
-     *
-     * @param nodeId     The unique identifier of the node associated with the actuator
-     * @param actuatorId The identifier of the actuator to be controlled
-     * @param isOn       A boolean whether to turn the actuator on or off
-     */
     @Override
     public void sendActuatorChange(int nodeId, int actuatorId, boolean isOn) {
-        JsonObject jsonMessage = new JsonObject();
-        jsonMessage.addProperty("type", "ACTUATOR_CONTROL");
-        jsonMessage.addProperty("nodeId", nodeId);
-        jsonMessage.addProperty("actuatorId", actuatorId);
-        jsonMessage.addProperty("isOn", isOn);
-
-        String message = jsonMessage.toString();
-        if (writer != null) {
-            writer.println(message);
-        }
+        // Implement the method logic here
+        // You can choose to handle this method according to the requirements of the sensor/actuator client
+        // For example, you can log a message indicating that the actuator change is not supported for this client
+        Logger.warning("Actuator change not supported for sensor/actuator client.");
     }
-
     @Override
     public void sendSensorData(int nodeId, int actuatorId, String actuatorType, boolean isOn, String sensorType, double sensorValue) {
         JsonObject jsonMessage = new JsonObject();
@@ -75,12 +50,7 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
             writer.println(message);
         }
     }
-    /**
-     * Open the communication channel with the client type
-     *
-     * @param clientType The type of the client (e.g., "CONTROL_PANEL" or "SENSOR_ACTUATOR")
-     * @return true if the communication channel is successfully opened, false otherwise
-     */
+
     @Override
     public boolean open(String clientType) {
         clientSocket = createSocket();
@@ -102,13 +72,6 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
         return false;
     }
 
-    /**
-     * Initializes the PrintWriter for sending messages and performs a handshake with the server by sending the client type
-     *
-     * @param socket The socket for communication with the server
-     * @param clientType The clientType for communication with the server
-     * @return true if the writer is successfully initialized, false otherwise
-     */
     private boolean initializeWriter(Socket socket, String clientType) {
         try {
             writer = new PrintWriter(socket.getOutputStream(), true);
@@ -121,10 +84,6 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
         }
     }
 
-
-    /**
-     * Reads and sends user-entered messages to the server in a separate thread.
-     */
     private void readAndSendMessages() {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
@@ -149,19 +108,10 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
         }
     }
 
-    /**
-     * sets the shutdown value
-     * @param ServerShutdownReceived shutdown value
-     */
-    public void setShutdownReceived(boolean ServerShutdownReceived) {
-        this.serverShutdownReceived = ServerShutdownReceived;
+    public void setShutdownReceived(boolean serverShutdownReceived) {
+        this.serverShutdownReceived = serverShutdownReceived;
     }
 
-    /**
-     * validates client input at client level
-     * @param userInput the client input
-     * @return boolean is valid or invalid
-     */
     private boolean isMessageFormatValidJSON(String userInput) {
         try {
             gson.fromJson(userInput, JsonObject.class);
@@ -172,22 +122,12 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
         }
     }
 
-    /**
-     * Sends a message to the server
-     *
-     * @param message The message to be sent to the server
-     */
     private void sendMessage(String message) {
         if (writer != null) {
             writer.println(message);
         }
     }
 
-    /**
-     * Creates a socket connection to the server.
-     *
-     * @return The created Socket object for communication.
-     */
     private Socket createSocket() {
         try {
             return new Socket(serverAddress, serverPort);
@@ -197,11 +137,6 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
         }
     }
 
-    /**
-     * Closes the socket and associated resources
-     *
-     * @param socket The socket to be closed
-     */
     private void closeSocket(Socket socket) {
         if (socket != null && !socket.isClosed()) {
             try {
@@ -215,9 +150,7 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
             Logger.warning("Socket is already closed or null. No action taken.");
         }
     }
-    /**
-    * Closes the socket and associated resources
-    */
+
     private void closeWriter() {
         if (writer != null) {
             writer.close();
@@ -227,18 +160,11 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
         }
     }
 
-    /**
-     * close both the socket and writer
-     */
     public void closeSocketAndWriter() {
         closeWriter();
         closeSocket(clientSocket);
     }
 
-    /**
-     * gets the client socket
-     * @return the client socket
-     */
     public Socket getClientSocket() {
         return clientSocket;
     }

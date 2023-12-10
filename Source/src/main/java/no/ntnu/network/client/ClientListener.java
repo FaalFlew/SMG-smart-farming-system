@@ -1,5 +1,6 @@
 package no.ntnu.network.client;
 
+import no.ntnu.controlpanel.ExtendedCommunicationChannel;
 import no.ntnu.tools.Logger;
 
 import java.io.BufferedReader;
@@ -8,9 +9,9 @@ import java.io.InputStreamReader;
 
 public class ClientListener implements Runnable {
 
-    private final SocketCommunicationChannel communicationChannel;
+    private final ExtendedCommunicationChannel communicationChannel;
 
-    public ClientListener(SocketCommunicationChannel communicationChannel) {
+    public ClientListener(ExtendedCommunicationChannel communicationChannel) {
         this.communicationChannel = communicationChannel;
     }
 
@@ -24,8 +25,8 @@ public class ClientListener implements Runnable {
                 // Handle the server message as needed
                 if (isShutdownNotification(serverMessage)) {
                     Logger.warning("Server shutdown notification received. Closing the client socket and writer.");
-                        communicationChannel.setShutdownReceived(true);
-                        communicationChannel.closeSocketAndWriter();
+                    communicationChannel.setShutdownReceived(true);
+                    communicationChannel.closeSocketAndWriter();
                     break;
                 }
 

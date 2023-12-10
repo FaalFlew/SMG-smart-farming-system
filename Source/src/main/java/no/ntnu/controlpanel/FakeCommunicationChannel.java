@@ -7,6 +7,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import com.google.gson.JsonObject;
 import no.ntnu.greenhouse.Actuator;
 import no.ntnu.greenhouse.SensorReading;
 import no.ntnu.tools.Logger;
@@ -28,7 +30,18 @@ public class FakeCommunicationChannel implements CommunicationChannel {
   public FakeCommunicationChannel(ControlPanelLogic logic) {
     this.logic = logic;
   }
+  @Override
+  public void sendSensorData(int nodeId, int actuatorId, String actuatorType, boolean isOn, String sensorType, double sensorValue) {
+    JsonObject jsonMessage = new JsonObject();
+    jsonMessage.addProperty("type", "SENSOR_DATA");
+    jsonMessage.addProperty("nodeId", nodeId);
+    jsonMessage.addProperty("actuatorId", actuatorId);
+    jsonMessage.addProperty("actuatorType", actuatorType);
+    jsonMessage.addProperty("isOn", isOn);
+    jsonMessage.addProperty("sensorType", sensorType);
+    jsonMessage.addProperty("sensorValue", sensorValue);
 
+  }
   private SensorActuatorNodeInfo createSensorNodeInfoFrom(String specification) {
     if (specification == null || specification.isEmpty()) {
       throw new IllegalArgumentException("Node specification can't be empty");

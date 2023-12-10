@@ -38,34 +38,3 @@ public class MainControlPanelClass {
     }
 }
 
-/**
-package no.ntnu.network.client;
-
-import no.ntnu.controlpanel.CommunicationChannel;
-import no.ntnu.network.client.SocketCommunicationChannel;
-import no.ntnu.tools.Logger;
-
-import static no.ntnu.network.server.SmartFarmingServer.PORT;
-
-public class MainControlPanelClass {
-
-    private static int lastNodeId = 1;
-
-    public static void main(String[] args) {
-        // Create an instance of the SocketCommunicationChannel
-        CommunicationChannel communicationChannel = new SocketCommunicationChannel("localhost", PORT);
-        if (communicationChannel.open("CONTROL_PANEL")) {
-            int actuatorId = 1;
-            int nodeId = getNextNodeId();
-            boolean isOn = true;
-            communicationChannel.sendActuatorChange(nodeId, actuatorId, isOn);
-
-        } else {
-            Logger.error("Failed to open communication channel. Exiting...");
-        }
-    }
-
-    private static int getNextNodeId() {
-        return lastNodeId++;
-    }
-}*/

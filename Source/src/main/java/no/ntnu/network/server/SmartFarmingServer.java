@@ -3,6 +3,8 @@ package no.ntnu.network.server;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import no.ntnu.network.client.clientinfo.ControlPanelClientInfo;
+import no.ntnu.network.client.clientinfo.SensorActuatorClientInfo;
 import no.ntnu.network.message.MessageHandler;
 import no.ntnu.tools.Logger;
 
@@ -29,9 +31,13 @@ public class SmartFarmingServer {
     public static final int PORT = 6019;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
     private static final List<PrintWriter> connectedClients = new ArrayList<>();
-    public static final List<ClientInfo> controlPanelClients = new CopyOnWriteArrayList<>();
-    public static final Map<String, ClientInfo> clientInfoMap = new HashMap<>();
-    private static final Map<String, Long> lastHeartbeatMap = new HashMap<>();
+    public static final List<ControlPanelClientInfo> controlPanelClients = new CopyOnWriteArrayList<>();
+    public static final Map<Integer, ControlPanelClientInfo> controlPanelClientInfoMap = new HashMap<>();
+    public static final List<SensorActuatorClientInfo> sensorActuatorClients = new CopyOnWriteArrayList<>();
+    public static final Map<Integer, SensorActuatorClientInfo> sensorActuatorClientInfoMap = new HashMap<>();
+
+    // TODO: implement heartbeat functionality to disconnect and remove clients who are inactive.
+    private static final Map<Integer, Long> lastHeartbeatMap = new HashMap<>();
 
     private static final Gson gson = new Gson();
 
@@ -55,16 +61,22 @@ public class SmartFarmingServer {
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                Logger.info("Client connected: " + clientSocket.getInetAddress().getHostName() +
-                        " [" + clientSocket.getPort() + "]");
-
                 PrintWriter clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
                 BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String clientType = getClientType(reader);
+                Logger.info("Client connected: " + clientType +" "+ clientSocket.getInetAddress().getHostName() +
+                        " [" + clientSocket.getPort() + "]");
+
+                connectedClients.add(clientWriter);
 
                 if ("CONTROL_PANEL".equalsIgnoreCase(clientType)) {
                     processControlPanelClient(clientSocket, clientWriter, reader);
-                    sendConnectedControlPanelClients(clientWriter); // Send the connected control panel clients to the new control panel
+                    // Send the connected control panel clients to the new control panel
+                    sendConnectedControlPanelClients(clientWriter);
+                }
+                if ("SENSOR_ACTUATOR".equalsIgnoreCase(clientType)) {
+                    processSensorActuatorClient(clientSocket, clientWriter, reader);
+                    sendConnectedSensorActuatorClients(clientWriter);
                 }
 
                 executorService.execute(new ClientHandler(clientSocket, clientWriter, clientType));
@@ -81,9 +93,9 @@ public class SmartFarmingServer {
     }
 
     public static void forwardCommandToClient(int nodeId, String commandMessage) {
-        for (ClientInfo clientInfo : controlPanelClients) {
-            if (clientInfo.getNodeId() == nodeId) {
-                PrintWriter clientWriter = clientInfo.getClientWriter();
+        for (ControlPanelClientInfo controlPanelClientInfo : controlPanelClients) {
+            if (controlPanelClientInfo.getNodeId() == nodeId) {
+                PrintWriter clientWriter = controlPanelClientInfo.getClientWriter();
                 if (clientWriter != null) {
                     clientWriter.println(commandMessage);
                     return; // Command forwarded successfully
@@ -95,30 +107,72 @@ public class SmartFarmingServer {
     }
 
     public static void removeControlPanelClient(int nodeId) {
-        controlPanelClients.removeIf(clientInfo -> clientInfo.getNodeId() == nodeId);
+        controlPanelClients.removeIf(controlPanelClientInfo -> controlPanelClientInfo.getNodeId() == nodeId);
 
         // Remove from the map as well
-        clientInfoMap.values().removeIf(clientInfo -> clientInfo.getNodeId() == nodeId);
+        controlPanelClientInfoMap.values().removeIf(controlPanelClientInfo -> controlPanelClientInfo.getNodeId() == nodeId);
 
         Logger.info("Control Panel client removed: nodeId=" + nodeId);
     }
+
+    public static void removeSensorActuatorClient(int nodeId) {
+        sensorActuatorClients.removeIf(sensorActuatorClientInfo -> sensorActuatorClientInfo.getNodeId() == nodeId);
+
+        // Remove from the map as well
+        sensorActuatorClientInfoMap.values().removeIf(sensorActuatorClientInfo -> sensorActuatorClientInfo.getNodeId() == nodeId);
+
+        Logger.info("Sensor Actuator client removed: nodeId=" + nodeId);
+    }
+
     private static PrintWriter processControlPanelClient(Socket clientSocket, PrintWriter writer, BufferedReader reader) throws IOException {
-        // Read additional information from CONTROL_PANEL client
+
         String jsonInfo = reader.readLine();
 
         // Parse the JSON string to extract the required information
         JsonObject infoObject = gson.fromJson(jsonInfo, JsonObject.class);
 
-        int actuatorId = infoObject.getAsJsonPrimitive("actuatorId").getAsInt();
         int nodeId = infoObject.getAsJsonPrimitive("nodeId").getAsInt();
-        boolean isOn = infoObject.getAsJsonPrimitive("isOn").getAsBoolean();
 
         // Store the client information in the list
-        ClientInfo clientInfo = new ClientInfo(nodeId, actuatorId, isOn, clientSocket.getInetAddress().getHostName(), writer);
-        controlPanelClients.add(clientInfo);
+        ControlPanelClientInfo controlPanelClientInfo = new ControlPanelClientInfo(nodeId, clientSocket.getInetAddress().getHostName(),clientSocket.getPort(), writer);
+        controlPanelClients.add(controlPanelClientInfo);
+
+        // Store ClientInfo in the map
+        controlPanelClientInfoMap.put(clientSocket.getPort(), controlPanelClientInfo);
+
+        return writer;
+    }
+
+    private static PrintWriter processSensorActuatorClient(Socket clientSocket, PrintWriter writer, BufferedReader reader) throws IOException {
+        // Read additional information from SENSOR_ACTUATOR client
+        String jsonInfo = reader.readLine();
+
+        // Parse the JSON string to extract the required information
+        JsonObject infoObject = gson.fromJson(jsonInfo, JsonObject.class);
+
+        int nodeId = infoObject.getAsJsonPrimitive("nodeId").getAsInt();
+        int actuatorId = infoObject.getAsJsonPrimitive("actuatorId").getAsInt();
+        String actuatorType = infoObject.getAsJsonPrimitive("actuatorType").getAsString();
+        boolean isOn = infoObject.getAsJsonPrimitive("isOn").getAsBoolean();
+        String sensorType = infoObject.getAsJsonPrimitive("sensorType").getAsString();
+        double sensorValue = infoObject.getAsJsonPrimitive("sensorValue").getAsDouble();
+
+        // Store the client information in the list (**!!important order of params!!**)
+        SensorActuatorClientInfo sensorActuatorClientInfo = new SensorActuatorClientInfo(
+                nodeId,
+                actuatorId,
+                actuatorType,
+                isOn,
+                sensorType,
+                sensorValue,
+                clientSocket.getInetAddress().getHostName(),
+                clientSocket.getPort(),
+                writer
+        );
+        sensorActuatorClients.add(sensorActuatorClientInfo);
 
         // Store ClientInfo in the map for future reference
-        clientInfoMap.put(clientSocket.getInetAddress().getHostAddress(), clientInfo);
+        sensorActuatorClientInfoMap.put(clientSocket.getPort(), sensorActuatorClientInfo);
 
         return writer;
     }
@@ -128,12 +182,12 @@ public class SmartFarmingServer {
         response.addProperty("type", "all");
         JsonArray clientsArray = new JsonArray();
 
-        for (ClientInfo clientInfo : controlPanelClients) {
+        for (ControlPanelClientInfo controlPanelClientInfo : controlPanelClients) {
             JsonObject clientObject = new JsonObject();
-            clientObject.addProperty("nodeid", clientInfo.getNodeId());
-            clientObject.addProperty("actuatorId", clientInfo.getActuatorId());
-            clientObject.addProperty("isOn", clientInfo.isOn());
-            clientObject.addProperty("clientAddress", clientInfo.getClientAddress());
+            clientObject.addProperty("nodeid", controlPanelClientInfo.getNodeId());
+            clientObject.addProperty("clientPort", controlPanelClientInfo.getClientPort());
+            clientObject.addProperty("clientAddress", controlPanelClientInfo.getClientAddress());
+
 
             clientsArray.add(clientObject);
         }
@@ -141,6 +195,30 @@ public class SmartFarmingServer {
         response.add("connectedControlPanelClients", clientsArray);
         clientWriter.println(response.toString());
     }
+
+    public static void sendConnectedSensorActuatorClients(PrintWriter clientWriter) {
+        JsonObject response = new JsonObject();
+        response.addProperty("type", "all_sensors");
+        JsonArray clientsArray = new JsonArray();
+
+        for (SensorActuatorClientInfo sensorActuatorClientInfo : sensorActuatorClients) {
+            JsonObject clientObject = new JsonObject();
+            clientObject.addProperty("nodeid", sensorActuatorClientInfo.getNodeId());
+            clientObject.addProperty("actuatorid", sensorActuatorClientInfo.getActuatorId());
+            clientObject.addProperty("actuatortype", sensorActuatorClientInfo.getActuatorType());
+            clientObject.addProperty("ison", sensorActuatorClientInfo.getIsOn());
+            clientObject.addProperty("sensortype", sensorActuatorClientInfo.getSensorType());
+            clientObject.addProperty("sensorvalue", sensorActuatorClientInfo.getSensorValue());
+            clientObject.addProperty("clientPort", sensorActuatorClientInfo.getClientPort());
+            clientObject.addProperty("clientAddress", sensorActuatorClientInfo.getClientAddress());
+
+            clientsArray.add(clientObject);
+        }
+
+        response.add("connectedSensorActuatorClients", clientsArray);
+        clientWriter.println(response.toString());
+    }
+
 
     /**
      * Reads and returns the client type from the provided BufferedReader

@@ -79,6 +79,15 @@ public class MessageHandler {
         return message.toString();
     }
 
+    public static String createCommandToControlPanelMessage(int controlPanelNodeId) {
+        JsonObject message = new JsonObject();
+        message.addProperty("type", "command_to_control_panel");
+        message.addProperty("controlPanelNodeId", controlPanelNodeId);
+
+
+        return message.toString();
+    }
+
     /**
      * Creates a JSON message for control commands with the specified control panel node ID and list of commands.
      *

@@ -1,19 +1,17 @@
-package no.ntnu.network.server;
+package no.ntnu.network.client.clientinfo;
 
 import java.io.PrintWriter;
 
-public class ClientInfo {
+public class BaseClientInfo {
     private final int nodeId;
-    private final int actuatorId;
-    private final boolean isOn;
     private final String clientAddress;
+    private final int clientPort;
     private final PrintWriter clientWriter;
 
-    public ClientInfo(int nodeId, int actuatorId, boolean isOn, String clientAddress, PrintWriter clientWriter) {
+    public BaseClientInfo(int nodeId, String clientAddress, int clientPort, PrintWriter clientWriter) {
         this.nodeId = nodeId;
-        this.actuatorId = actuatorId;
-        this.isOn = isOn;
         this.clientAddress = clientAddress;
+        this.clientPort = clientPort;
         this.clientWriter = clientWriter;
     }
 
@@ -21,20 +19,14 @@ public class ClientInfo {
         return nodeId;
     }
 
-    public int getActuatorId() {
-        return actuatorId;
-    }
-
-    public boolean isOn() {
-        return isOn;
-    }
-
     public String getClientAddress() {
         return clientAddress;
+    }
+    public int getClientPort() {
+        return clientPort;
     }
 
     public PrintWriter getClientWriter() {
         return clientWriter;
     }
-
 }
