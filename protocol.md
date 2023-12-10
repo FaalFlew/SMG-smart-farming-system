@@ -91,6 +91,9 @@ when a client connects to the server, the server loggs the the type of client th
 
 When a client connects, the client gets a logg list of all the connected other clients of its type alongside all the properties
 
+### When client disconnects
+The server loggs the client type and node id of the disconnected client handles it properly by removing it from any relevant lists where it is stored or information regarding that client is stored.
+
 ### Error messages
 
 TODO - describe the possible error messages that nodes can send in your system.
