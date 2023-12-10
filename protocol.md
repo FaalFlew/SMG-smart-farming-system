@@ -67,12 +67,38 @@ them here.
 TODO - describe the general format of all messages. Then describe specific format for each 
 message type in your protocol.
 
+We use JSON as the message format, this is how clients and servers receive and send messages and command to each other.
+
+commands can be sent to server using the attribue **type** where the value of the attribute is the command.
+
+**Commands:** 
+- **all_sensors**: This command retrieves a list of all sensoror actuator node clients connected to the server.
+- **all_control_panels**: This command retrieves a list of all control panel node clients connected to the server.
+- **command_to_sensor_actuator**: This command turns an actuator on or off, Example usage: {"type":"command_to_control_panel","nodeid":"4", "ison":false} 
+
+### Case sensitivity
+Commands are not case sensitive and spaces are trimmed from the message, meaning {"TyPE":"aLL_ SenSORs"} is interpreted as  {"type":"all_sensors"}
+
+
+### Warnings
+
+When the server is about to shut down it gives a warning to all connected clients that it is shutting down. It closes the sockets of all the connected clients, and their printwriter.
+The clients listen for a message that contains the command **shutdown** from the server, if so; it handles it correctly.
+
+### When client connects
+
+when a client connects to the server, the server loggs the the type of client that has connected, for example  **CONTROL_PANEL** or **SENSOR_ACTUATOR**
+
+When a client connects, the client gets a logg list of all the connected other clients of its type alongside all the properties
+
 ### Error messages
 
 TODO - describe the possible error messages that nodes can send in your system.
 
 **Possible Errors**: Connection failure, invalid command, sensor failure.
-
+- **Connection failure**: If the server is not runing and a client is not able to connect
+- **Invalid command**: If message/command type is unknown an error is logged: "Unknown message type"
+- **client input validation**: at the client level, the client has to write messages in proper JSON format, otherwise an error will be logged to the client indicating invalid JSON format. 
 **Error Format**: Include error code and description in error messages.
 
 ## An example scenario
