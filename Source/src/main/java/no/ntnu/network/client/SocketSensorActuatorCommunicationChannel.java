@@ -27,12 +27,19 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
     }
+
     @Override
     public void sendActuatorChange(int nodeId, int actuatorId, boolean isOn) {
-        // Implement the method logic here
-        // You can choose to handle this method according to the requirements of the sensor/actuator client
-        // For example, you can log a message indicating that the actuator change is not supported for this client
-        Logger.warning("Actuator change not supported for sensor/actuator client.");
+        JsonObject jsonMessage = new JsonObject();
+        jsonMessage.addProperty("type", "ACTUATOR_CONTROL");
+        jsonMessage.addProperty("nodeId", nodeId);
+        jsonMessage.addProperty("actuatorId", actuatorId);
+        jsonMessage.addProperty("isOn", isOn);
+
+        String message = jsonMessage.toString();
+        if (writer != null) {
+            writer.println(message);
+        }
     }
     @Override
     public void sendSensorData(int nodeId, int actuatorId, String actuatorType, boolean isOn, String sensorType, double sensorValue) {

@@ -124,16 +124,16 @@ public class ClientHandler implements Runnable {
                 case "actuator_control":
                     handleActuatorControl(clientMessage);
                     break;
-                case "all":
+                case "all_control_panels":
                     // Send information about all connected CONTROL_PANEL clients
                     sendConnectedControlPanelClients(writer);
                     break;
                 case "all_sensors":
-                    // Send information about all connected CONTROL_PANEL clients
+                    // Send information about all connected sensor/actuator clients
                     sendConnectedSensorActuatorClients(writer);
                     break;
-                case "command_to_control_panel":
-                    // send a command to a control panel, examble {"type":"command_to_control_panel","nodeid":"4"}
+                case "command_to_sensor_actuator":
+                    // send a command to a control panel, example {"type":"command_to_control_panel","nodeid":"4"}
                     handleCommandToControlPanel(clientMessage);
                     break;
                 case "all_control_commands":
@@ -179,9 +179,10 @@ public class ClientHandler implements Runnable {
         // Parse the command message and extract the nodeId
         JsonObject commandObject = gson.fromJson(clientMessage, JsonObject.class);
         int nodeId = commandObject.getAsJsonPrimitive("nodeid").getAsInt();
+        boolean isOn = commandObject.getAsJsonPrimitive("ison").getAsBoolean();
 
         // Forward the command to the specified client
-        SmartFarmingServer.forwardCommandToClient(nodeId, clientMessage);
+        SmartFarmingServer.forwardCommandToClient(nodeId,isOn);
     }
     /**
      * Handles sensor data received from the client, parsing and processing the data

@@ -4,8 +4,8 @@ import java.io.PrintWriter;
 
 public class SensorActuatorClientInfo extends BaseClientInfo {
     private final int actuatorId;
-    private final double sensorValue;
-    private final boolean isOn;
+    private double sensorValue;
+    private boolean isOn;
     private final String sensorType;
     private final String actuatorType;
 
@@ -17,7 +17,6 @@ public class SensorActuatorClientInfo extends BaseClientInfo {
         this.isOn = isOn;
         this.sensorType = sensorType;
         this.actuatorType = actuatorType;
-
     }
 
     public int getActuatorId() {
@@ -35,5 +34,8 @@ public class SensorActuatorClientInfo extends BaseClientInfo {
 
     public String getActuatorType() {
         return actuatorType;
+    }
+    public void setOn(boolean isOn) {
+        this.isOn = isOn;
     }
 }

@@ -92,12 +92,19 @@ public class SmartFarmingServer {
         }
     }
 
-    public static void forwardCommandToClient(int nodeId, String commandMessage) {
-        for (ControlPanelClientInfo controlPanelClientInfo : controlPanelClients) {
-            if (controlPanelClientInfo.getNodeId() == nodeId) {
-                PrintWriter clientWriter = controlPanelClientInfo.getClientWriter();
+    public static void forwardCommandToClient(int nodeId, boolean isOn) {
+        for (SensorActuatorClientInfo sensorActuatorClientInfo : sensorActuatorClients) {
+            if (sensorActuatorClientInfo.getNodeId() == nodeId) {
+                sensorActuatorClientInfo.setOn(isOn); // Update the isOn status
+                PrintWriter clientWriter = sensorActuatorClientInfo.getClientWriter();
                 if (clientWriter != null) {
-                    clientWriter.println(commandMessage);
+                    // Create a structured command message
+                    JsonObject commandObject = new JsonObject();
+                    commandObject.addProperty("type", "control_command");
+                    commandObject.addProperty("ison", isOn);
+
+                    // Send the command message to the client
+                    clientWriter.println(commandObject.toString());
                     return; // Command forwarded successfully
                 }
             }
