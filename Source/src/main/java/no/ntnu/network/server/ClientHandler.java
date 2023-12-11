@@ -138,7 +138,7 @@ public class ClientHandler implements Runnable {
                     sendConnectedSensorActuatorClients(writer);
                     break;
                 case "command_to_sensor_actuator":
-                    // send a command to a control panel, example {"type":"command_to_sensor_actuator","nodeid":"3", "ison":true}
+                    // send a command to a control panel, example {"type":"command_to_sensor_actuator","nodeid":"3", "ison":false}
                     handleCommandToSensorActuator(clientMessage);
                     break;
 
