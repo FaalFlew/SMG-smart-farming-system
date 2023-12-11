@@ -6,7 +6,6 @@ import no.ntnu.network.client.clientinfo.BaseClientInfo;
 import no.ntnu.network.client.clientinfo.ControlPanelClientInfo;
 import no.ntnu.network.client.clientinfo.SensorActuatorClientInfo;
 import no.ntnu.network.message.MessageHandler;
-import no.ntnu.greenhouse.Actuator;
 import no.ntnu.greenhouse.SensorReading;
 import no.ntnu.tools.Logger;
 
@@ -17,8 +16,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+
 
 import static no.ntnu.network.server.SmartFarmingServer.*;
 
@@ -77,6 +75,14 @@ public class ClientHandler implements Runnable {
     private void handleClient() throws IOException {
         String clientMessage;
         try {
+
+            if("CONTROL_PANEL".equalsIgnoreCase(clientType)) {
+                MessageHandler.sendAvailableCommandsListControlPanel(writer);
+            }
+            if ("SENSOR_ACTUATOR".equalsIgnoreCase(clientType)) {
+                MessageHandler.sendAvailableCommandsListSensorActuator(writer);
+            }
+
             while ((clientMessage = reader.readLine()) != null) {
                 Logger.info("Received message from client " + clientType + " (NodeID: " + getClientNodeID() + "): " + MessageHandler.validateMessageFormat(clientMessage));
 
@@ -96,6 +102,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles disconnection of a client by removing its information based on its type (Control Panel or Sensor Actuator).
+     * For Control Panel clients, their information is removed from the server's controlPanelClients list.
+     * For Sensor Actuator clients, their information is removed from the server's sensorActuatorClients list.
+     */
     private void handleClientDisconnect() {
         if ("CONTROL_PANEL".equalsIgnoreCase(clientType)) {
             // Remove the control panel client information
@@ -118,12 +129,6 @@ public class ClientHandler implements Runnable {
             String messageType = MessageHandler.getMessageType(clientMessage);
 
             switch (messageType) {
-                case "sensor_data":
-                    handleSensorData(clientMessage);
-                    break;
-                case "actuator_control":
-                    handleActuatorControl(clientMessage);
-                    break;
                 case "all_control_panels":
                     // Send information about all connected CONTROL_PANEL clients
                     sendConnectedControlPanelClients(writer);
@@ -133,18 +138,23 @@ public class ClientHandler implements Runnable {
                     sendConnectedSensorActuatorClients(writer);
                     break;
                 case "command_to_sensor_actuator":
+                    // send a command to a control panel, example {"type":"command_to_sensor_actuator","nodeid":"3", "ison":true}
+                    handleCommandToSensorActuator(clientMessage);
+                    break;
+
+                    //TODO: get all sensor data at once
+                case "sensor_data":
+                    handleSensorData(clientMessage);
+                    break;
+                    //TODO: get_sensorvalue should take in "nodeid" for the node to retrieve the sensor value from and a "timer" as to how often (in seconds) to retrieve the data.
+                case "get_sensorvalue":
                     // send a command to a control panel, example {"type":"command_to_control_panel","nodeid":"4"}
-                    handleCommandToControlPanel(clientMessage);
+                    handleCommandToSensorActuator(clientMessage);
                     break;
                 case "all_control_commands":
                     // TODO: send all control commands available for contorlpanel, store this case switch in a nice class first.
                     handleSensorData(clientMessage);
                     break;
-                case "shut_down":
-                    handleSensorData(clientMessage);
-                    break;
-
-                // Add more cases for other message types
 
                 default:
                     Logger.error("Unknown message type: " + messageType);
@@ -154,8 +164,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
-
-    // Add a method to retrieve the node ID from the ClientInfo
+    /**
+     * Retrieves the Node ID of the connected client based on its type (Control Panel or Sensor Actuator).
+     *
+     * @return The Node ID of the client, or -1 if the client type is unknown or the information is not available.
+     */
     public int getClientNodeID() {
         BaseClientInfo clientInfo = getClientInfoByPortNumber(clientSocket.getPort());
 
@@ -169,21 +182,35 @@ public class ClientHandler implements Runnable {
         return -1;
     }
 
-    // Add a method to retrieve the ClientInfo based on the client address
+    /**
+     * Retrieves the client information based on the client's port number.
+     *
+     * @param clientPort The port number of the client.
+     * @return The client information (ControlPanelClientInfo or SensorActuatorClientInfo), or null if not found.
+     */
     private BaseClientInfo getClientInfoByPortNumber(int clientPort) {
         return ("CONTROL_PANEL".equalsIgnoreCase(clientType)) ? controlPanelClientInfoMap.get(clientPort) : sensorActuatorClientInfoMap.get(clientPort);
 
     }
 
-    private void handleCommandToControlPanel(String clientMessage) {
+    /**
+     * Handles a command sent to a control panel client. Parses the command message to extract the nodeId and isOn values,
+     * then forwards the command to the specified client.
+     *
+     * @param clientMessage The command message received from the control panel client.
+     */
+    private void handleCommandToSensorActuator(String clientMessage) {
         // Parse the command message and extract the nodeId
         JsonObject commandObject = gson.fromJson(clientMessage, JsonObject.class);
         int nodeId = commandObject.getAsJsonPrimitive("nodeid").getAsInt();
         boolean isOn = commandObject.getAsJsonPrimitive("ison").getAsBoolean();
-
+        //notify the client that server retrieved the message.
+        String response = MessageHandler.createSuccessResponse("SENSOR_DATA");
+        writer.println(response);
         // Forward the command to the specified client
         SmartFarmingServer.forwardCommandToClient(nodeId,isOn);
     }
+
     /**
      * Handles sensor data received from the client, parsing and processing the data
      *
@@ -200,42 +227,24 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Handles actuator control command received from the client, parsing and processing the command
+     * Handles a command related to sensor values. Parses the command message to extract the nodeId and timer values,
+     * then forwards the command to the specified client.
      *
-     * @param clientMessage The actuator control command message received from the client
+     * @param clientMessage The command message received, containing information about the nodeId and timer.
      */
-    private void handleActuatorControl(String clientMessage) {
-        List<Actuator> actuatorStatusList = MessageHandler.parseActuatorStatusMessage(clientMessage);
+    private void handleCommandToSensorValue(String clientMessage) {
+        // Parse the command message and extract the nodeId
+        JsonObject commandObject = gson.fromJson(clientMessage, JsonObject.class);
+        int nodeId = commandObject.getAsJsonPrimitive("nodeid").getAsInt();
+        boolean isOn = commandObject.getAsJsonPrimitive("timer").getAsBoolean();
 
-        // TODO: Implement actuator control logic
-
-        // Respond to the client
-        String response = MessageHandler.createSuccessResponse("ACTUATOR_CONTROL");
-        writer.println(response);
+        // Forward the command to the specified client
+        SmartFarmingServer.forwardCommandToClient(nodeId,isOn);
     }
 
-    //to be done Add more methods for handling different message types
 
-    //  method for simulating periodic sensor data broadcast should be used along the starting value of sensornode
-    /**
-     * Simulates periodic sensor data broadcast to the client
-     *
-     * @param nodeId The ID of the node for which to simulate sensor data broadcast
-     */
-    private void simulatePeriodicSensorDataBroadcast(int nodeId) {
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                // Simulate sensor data
-                JsonObject sensorData = new JsonObject();
-                sensorData.addProperty("type", "sensor_data");
-                sensorData.addProperty("nodeid", nodeId);
-                sensorData.addProperty("temperature", Math.random() * 30);
-                sensorData.addProperty("humidity", Math.random() * 100);
 
-                writer.println(sensorData.toString());
-            }
-        }, 0, 5000);
-    }
+
+
+
 }

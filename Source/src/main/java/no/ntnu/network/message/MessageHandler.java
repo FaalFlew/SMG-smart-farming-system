@@ -6,6 +6,7 @@ import no.ntnu.greenhouse.SensorReading;
 import no.ntnu.controlpanel.ControlPanelLogic;
 import no.ntnu.tools.Logger;
 
+import java.io.PrintWriter;
 import java.util.List;
 
 /**
@@ -17,9 +18,17 @@ public class MessageHandler {
             .registerTypeAdapter(String.class, new TrimStringDeserializer())
             .create();
 
-    // TODO: addd a message informing the client control panel of all possible commands it can send that is sent when the client connects
-
-    //TODO: USe this method to validate json at client level
+    /**
+     * Validates the format of a JSON message string by attempting to parse it into a JsonObject.
+     * The method performs the following validations:
+     * 1. Converts the entire message to lowercase.
+     * 2. Removes all spaces from the message.
+     * 3. Attempts to parse the modified message into a JsonObject using Gson.
+     *
+     * @param userInput The input JSON message string to be validated.
+     * @return The validated and modified JSON message string.
+     * @throws IllegalArgumentException If the provided message is not a valid JSON format.
+     */
     public static String validateMessageFormat(String userInput) {
         try {
             // Turn all message to lowercase
@@ -35,80 +44,6 @@ public class MessageHandler {
         }
     }
 
-    /**
-     * Creates a JSON message for sensor data with the specified node ID and list of sensor readings
-     *
-     * @param nodeId         The ID of the node sending the sensor data.
-     * @param sensorDataList The list of sensor readings to be included in the message.
-     * @return The JSON message representing sensor data.
-     */
-    public static String createSensorDataMessage(int nodeId, List<SensorReading> sensorDataList) {
-        JsonObject message = new JsonObject();
-        message.addProperty("type", "SENSOR_DATA");
-        message.addProperty("nodeId", nodeId);
-
-        // Create a JSON array for sensor data
-        JsonArray sensorDataArray = new JsonArray();
-        for (SensorReading sensorReading : sensorDataList) {
-            sensorDataArray.add(gson.toJsonTree(sensorReading));
-        }
-        message.add("sensorData", sensorDataArray);
-
-        return message.toString();
-    }
-
-    /**
-     * Creates a JSON message for actuator status with the specified node ID and list of actuators
-     *
-     * @param nodeId             The ID of the node providing actuator status.
-     * @param actuatorStatusList The list of actuators and their statuses to be included in the message.
-     * @return The JSON message representing actuator status.
-     */
-    public static String createActuatorStatusMessage(int nodeId, List<Actuator> actuatorStatusList) {
-        JsonObject message = new JsonObject();
-        message.addProperty("type", "ACTUATOR_STATUS");
-        message.addProperty("nodeId", nodeId);
-
-        // Create a JSON array for actuator status
-        JsonArray actuatorStatusArray = new JsonArray();
-        for (Actuator actuator : actuatorStatusList) {
-            actuatorStatusArray.add(gson.toJsonTree(actuator));
-        }
-        message.add("actuatorStatus", actuatorStatusArray);
-
-        return message.toString();
-    }
-
-    public static String createCommandToControlPanelMessage(int controlPanelNodeId) {
-        JsonObject message = new JsonObject();
-        message.addProperty("type", "command_to_control_panel");
-        message.addProperty("controlPanelNodeId", controlPanelNodeId);
-
-
-        return message.toString();
-    }
-
-    /**
-     * Creates a JSON message for control commands with the specified control panel node ID and list of commands.
-     *
-     * @param controlPanelNodeId The ID of the control panel node sending the commands.
-     * @param controlCommands    The list of control commands to be included in the message
-     * @return The JSON message representing control commands.
-     */
-    public static String createControlCommandMessage(int controlPanelNodeId, List<ControlPanelLogic> controlCommands) {
-        JsonObject message = new JsonObject();
-        message.addProperty("type", "CONTROL_COMMAND");
-        message.addProperty("controlPanelNodeId", controlPanelNodeId);
-
-        // Create a JSON array for control commands
-        JsonArray controlCommandArray = new JsonArray();
-        for (ControlPanelLogic controlCommand : controlCommands) {
-            controlCommandArray.add(gson.toJsonTree(controlCommand));
-        }
-        message.add("controlCommands", controlCommandArray);
-
-        return message.toString();
-    }
 
     /**
      * Creates a warning message with the specified content.
@@ -169,8 +104,49 @@ public class MessageHandler {
         }
     }
 
+    /**
+     * Sends the list of available commands to the control panel client
+     *
+     * @param writer The PrintWriter used for sending messages to the client
+     */
+    public static void sendAvailableCommandsListControlPanel(PrintWriter writer) {
+        // Create a JSON object containing the list of available commands
+        JsonObject commandList = new JsonObject();
+        commandList.addProperty("type", "available_commands");
 
+        // Add the available commands based on your application
+        // For example:
+        JsonArray commandsArray = new JsonArray();
+        commandsArray.add("ALL_CONTROL_PANELS");
+        commandsArray.add("ALL_SENSORS");
+        commandsArray.add("COMMAND_TO_SENSOR_ACTUATOR");
+        // Add more commands as needed
 
+        commandList.add("commands", commandsArray);
+
+        // Send the available commands to the client
+        writer.println(commandList.toString());
+    }
+    /**
+     *
+     * Sends the list of available commands to the sensor actuator node client
+     *
+     * @param writer The PrintWriter used for sending messages to the client
+     */
+    public static void sendAvailableCommandsListSensorActuator(PrintWriter writer) {
+        // Create a JSON object containing the list of available commands
+        JsonObject commandList = new JsonObject();
+        commandList.addProperty("type", "available_commands");
+
+        // the available commands
+        JsonArray commandsArray = new JsonArray();
+        commandsArray.add("ALL_SENSORS");
+
+        commandList.add("commands", commandsArray);
+
+        // Send the available commands to the client
+        writer.println(commandList.toString());
+    }
 
     /**
      * Creates a success response message with the specified content

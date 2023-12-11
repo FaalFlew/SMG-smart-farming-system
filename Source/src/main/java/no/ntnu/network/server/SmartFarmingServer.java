@@ -14,10 +14,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -92,10 +89,17 @@ public class SmartFarmingServer {
         }
     }
 
+    /**
+     * Forwards a control command to the Sensor Actuator client with the specified nodeId.
+     * Updates the client's isOn status, creates a structured command message, and sends it to the client.
+     *
+     * @param nodeId The identifier of the target Sensor Actuator client.
+     * @param isOn   The new status to set for the client.
+     */
     public static void forwardCommandToClient(int nodeId, boolean isOn) {
         for (SensorActuatorClientInfo sensorActuatorClientInfo : sensorActuatorClients) {
             if (sensorActuatorClientInfo.getNodeId() == nodeId) {
-                sensorActuatorClientInfo.setOn(isOn); // Update the isOn status
+                sensorActuatorClientInfo.setOn(isOn);
                 PrintWriter clientWriter = sensorActuatorClientInfo.getClientWriter();
                 if (clientWriter != null) {
                     // Create a structured command message
@@ -113,6 +117,12 @@ public class SmartFarmingServer {
         Logger.error("Client with nodeId " + nodeId + " not found");
     }
 
+    /**
+     * Removes a Control Panel client from the server's records based on the specified nodeId.
+     * Removes the client information from the list and the map.
+     *
+     * @param nodeId The identifier of the Control Panel client to be removed.
+     */
     public static void removeControlPanelClient(int nodeId) {
         controlPanelClients.removeIf(controlPanelClientInfo -> controlPanelClientInfo.getNodeId() == nodeId);
 
@@ -122,6 +132,12 @@ public class SmartFarmingServer {
         Logger.info("Control Panel client removed: nodeId=" + nodeId);
     }
 
+    /**
+     * Removes a Sensor Actuator client from the server's records based on the specified nodeId.
+     * Removes the client information from the list and the map.
+     *
+     * @param nodeId The identifier of the Sensor Actuator client to be removed.
+     */
     public static void removeSensorActuatorClient(int nodeId) {
         sensorActuatorClients.removeIf(sensorActuatorClientInfo -> sensorActuatorClientInfo.getNodeId() == nodeId);
 
@@ -131,6 +147,16 @@ public class SmartFarmingServer {
         Logger.info("Sensor Actuator client removed: nodeId=" + nodeId);
     }
 
+    /**
+     * Processes a new Control Panel client by reading information from the provided BufferedReader,
+     * parsing the JSON string, and storing the client information in the server's records.
+     *
+     * @param clientSocket The socket associated with the Control Panel client.
+     * @param writer The PrintWriter for the Control Panel client.
+     * @param reader The BufferedReader connected to the client's input stream.
+     * @return The PrintWriter for the Control Panel client.
+     * @throws IOException If an I/O error occurs while processing the client.
+     */
     private static PrintWriter processControlPanelClient(Socket clientSocket, PrintWriter writer, BufferedReader reader) throws IOException {
 
         String jsonInfo = reader.readLine();
@@ -150,6 +176,16 @@ public class SmartFarmingServer {
         return writer;
     }
 
+    /**
+     * Processes a new Sensor Actuator client by reading additional information from the provided BufferedReader,
+     * parsing the JSON string, and storing the client information in the server's records.
+     *
+     * @param clientSocket The socket associated with the Sensor Actuator client.
+     * @param writer The PrintWriter for the Sensor Actuator client.
+     * @param reader The BufferedReader connected to the client's input stream.
+     * @return The PrintWriter for the Sensor Actuator client.
+     * @throws IOException If an I/O error occurs while processing the client.
+     */
     private static PrintWriter processSensorActuatorClient(Socket clientSocket, PrintWriter writer, BufferedReader reader) throws IOException {
         // Read additional information from SENSOR_ACTUATOR client
         String jsonInfo = reader.readLine();
@@ -184,6 +220,12 @@ public class SmartFarmingServer {
         return writer;
     }
 
+
+    /**
+     * Sends a message to the specified Control Panel client containing information about all connected Control Panel clients.
+     *
+     * @param clientWriter The PrintWriter associated with the Control Panel client.
+     */
     public static void sendConnectedControlPanelClients(PrintWriter clientWriter) {
         JsonObject response = new JsonObject();
         response.addProperty("type", "all");
@@ -202,6 +244,12 @@ public class SmartFarmingServer {
         response.add("connectedControlPanelClients", clientsArray);
         clientWriter.println(response.toString());
     }
+
+    /**
+     * Sends a message to the specified Sensor Actuator client containing information about all connected Sensor Actuator clients.
+     *
+     * @param clientWriter The PrintWriter associated with the Sensor Actuator client.
+     */
 
     public static void sendConnectedSensorActuatorClients(PrintWriter clientWriter) {
         JsonObject response = new JsonObject();
@@ -239,6 +287,25 @@ public class SmartFarmingServer {
     }
 
     /**
+     * Sends a shutdown message to all connected clients with the specified message.
+     *
+     * @param message The message to be included in the shutdown message.
+     */
+    private static void sendShutdownToAllClients(String message) {
+        for (PrintWriter clientWriter : connectedClients) {
+            try {
+                // Create a shutdown message
+                String shutdownMessage = MessageHandler.createShutdownMessage(message);
+
+                // Send the shutdown message to the client
+                clientWriter.println(shutdownMessage);
+            } catch (Exception e) {
+                Logger.error("Error sending shutdown message to client: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
      * Sends a warning message to all connected clients before shutting down the server
      * @param message The message to be sent to all connected clients.
 
@@ -256,21 +323,5 @@ public class SmartFarmingServer {
             }
         }
     }
-
-
-    private static void sendShutdownToAllClients(String message) {
-        for (PrintWriter clientWriter : connectedClients) {
-            try {
-                // Create a shutdown message
-                String shutdownMessage = MessageHandler.createShutdownMessage(message);
-
-                // Send the shutdown message to the client
-                clientWriter.println(shutdownMessage);
-            } catch (Exception e) {
-                Logger.error("Error sending shutdown message to client: " + e.getMessage());
-            }
-        }
-    }
-
 
 }

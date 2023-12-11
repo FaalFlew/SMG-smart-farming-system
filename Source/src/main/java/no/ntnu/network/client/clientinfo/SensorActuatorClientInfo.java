@@ -38,4 +38,7 @@ public class SensorActuatorClientInfo extends BaseClientInfo {
     public void setOn(boolean isOn) {
         this.isOn = isOn;
     }
+    public void setSensorValue(double sensorValue) {
+        this.sensorValue = sensorValue;
+    }
 }

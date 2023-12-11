@@ -12,6 +12,11 @@ public class Logger {
   private Logger() {
   }
 
+  /**
+   * Log a warning message.
+   *
+   * @param message The message to log. A newline is appended automatically.
+   */
   public static void warning(String message) {
     System.out.println("[WARNING] " + message);
   }

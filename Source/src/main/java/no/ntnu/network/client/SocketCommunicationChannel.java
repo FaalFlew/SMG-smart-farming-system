@@ -38,13 +38,19 @@ public class SocketCommunicationChannel implements ExtendedCommunicationChannel 
         this.serverPort = serverPort;
     }
 
-    /**
-     * Sends a control command to change the state of an actuator.
-     *
-     * @param nodeId     The unique identifier of the node associated with the actuator
-     * @param actuatorId The identifier of the actuator to be controlled
-     * @param isOn       A boolean whether to turn the actuator on or off
-     */
+
+    @Override
+    public void sendGetSensorData(int nodeId, long timer) {
+        JsonObject jsonMessage = new JsonObject();
+        jsonMessage.addProperty("type", "GET_SENSOR_DATA");
+        jsonMessage.addProperty("nodeId", nodeId);
+        jsonMessage.addProperty("timer", timer);
+
+        String message = jsonMessage.toString();
+        if (writer != null) {
+            writer.println(message);
+        }
+    }
     @Override
     public void sendActuatorChange(int nodeId, int actuatorId, boolean isOn) {
         JsonObject jsonMessage = new JsonObject();

@@ -3,7 +3,6 @@ package no.ntnu.network.client;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import no.ntnu.controlpanel.CommunicationChannel;
 import no.ntnu.controlpanel.ExtendedCommunicationChannel;
 import no.ntnu.tools.Logger;
 
@@ -13,6 +12,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+/**
+ * Socket-based communication channel for the Sensor-Actuator client.
+ * Implements the ExtendedCommunicationChannel interface for sending specific messages.
+ */
 public class SocketSensorActuatorCommunicationChannel implements ExtendedCommunicationChannel {
 
     private final String serverAddress;
@@ -23,9 +26,28 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
 
     private volatile boolean serverShutdownReceived = false;
 
+    /**
+     * Creates a new SocketSensorActuatorCommunicationChannel with the specified server address and port.
+     *
+     * @param serverAddress The server address to connect to.
+     * @param serverPort    The server port to connect to.
+     */
     public SocketSensorActuatorCommunicationChannel(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
+    }
+
+    @Override
+    public void sendGetSensorData(int nodeId, long timer) {
+        JsonObject jsonMessage = new JsonObject();
+        jsonMessage.addProperty("type", "GET_SENSOR_DATA");
+        jsonMessage.addProperty("nodeId", nodeId);
+        jsonMessage.addProperty("timer", timer);
+
+        String message = jsonMessage.toString();
+        if (writer != null) {
+            writer.println(message);
+        }
     }
 
     @Override
@@ -79,6 +101,13 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
         return false;
     }
 
+    /**
+     * Initializes the PrintWriter for sending messages over the provided socket
+     *
+     * @param socket     The socket for communication.
+     * @param clientType The type of the client
+     * @return True if the writer is successfully initialized, false otherwise.
+     */
     private boolean initializeWriter(Socket socket, String clientType) {
         try {
             writer = new PrintWriter(socket.getOutputStream(), true);
@@ -91,6 +120,9 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
         }
     }
 
+    /**
+     * Reads and sends messages from the user input
+     */
     private void readAndSendMessages() {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
@@ -115,10 +147,21 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
         }
     }
 
+    /**
+     * Sets the shutdown received flag.
+     *
+     * @param serverShutdownReceived True if a shutdown signal has been received, false otherwise.
+     */
     public void setShutdownReceived(boolean serverShutdownReceived) {
         this.serverShutdownReceived = serverShutdownReceived;
     }
 
+    /**
+     * Checks if the provided user input has a valid JSON format
+     *
+     * @param userInput The user input to validate.
+     * @return True if the input has a valid JSON format, false otherwise.
+     */
     private boolean isMessageFormatValidJSON(String userInput) {
         try {
             gson.fromJson(userInput, JsonObject.class);
@@ -129,12 +172,22 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
         }
     }
 
+    /**
+     * Sends a message using the PrintWriter
+     *
+     * @param message The message to send.
+     */
     private void sendMessage(String message) {
         if (writer != null) {
             writer.println(message);
         }
     }
 
+    /**
+     * Creates a new socket to the specified server address and port.
+     *
+     * @return The created Socket or null if creation fails
+     */
     private Socket createSocket() {
         try {
             return new Socket(serverAddress, serverPort);
@@ -143,6 +196,13 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
             return null;
         }
     }
+
+
+    /**
+     * Closes the provided socket
+     *
+     * @param socket The socket to close.
+     */
 
     private void closeSocket(Socket socket) {
         if (socket != null && !socket.isClosed()) {
@@ -158,6 +218,9 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
         }
     }
 
+    /**
+     * Closes the PrintWriter.
+     */
     private void closeWriter() {
         if (writer != null) {
             writer.close();
@@ -167,11 +230,19 @@ public class SocketSensorActuatorCommunicationChannel implements ExtendedCommuni
         }
     }
 
+    /**
+     * Closes both the socket and the PrintWriter.
+     */
     public void closeSocketAndWriter() {
         closeWriter();
         closeSocket(clientSocket);
     }
 
+    /**
+     * Gets the client socket.
+     *
+     * @return The client socket.
+     */
     public Socket getClientSocket() {
         return clientSocket;
     }

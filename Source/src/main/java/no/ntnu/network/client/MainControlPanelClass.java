@@ -19,7 +19,6 @@ public class MainControlPanelClass {
     public static void main(String[] args) {
         // Check if there are enough command-line arguments
         if (args.length < 3) {
-            // args like 3 1 true
             Logger.error("Usage: java MainControlPanelClass <actuatorId> <nodeId> <isOn>");
             System.exit(1);
         }
